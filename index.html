@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy | Anime Movies BD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Animations & Styling */
+        body { 
+            background-color: #020617; /* Slate 950 */
+            background-image: radial-gradient(circle at top right, rgba(249, 115, 22, 0.1), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.1), transparent 40%);
+            color: #cbd5e1; 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+        }
+        
+        .glass-card { 
+            background: rgba(30, 41, 59, 0.4); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(249, 115, 22, 0.3); /* Orange glow on hover */
+            box-shadow: 0 10px 40px rgba(249, 115, 22, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #f97316, #fbbf24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* SVG Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.4)); transform: scale(1); }
+            50% { filter: drop-shadow(0 0 20px rgba(249, 115, 22, 0.8)); transform: scale(1.05); }
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-shield { animation: pulse-glow 4s ease-in-out infinite; }
+        .animate-gear { animation: spin-slow 12s linear infinite; transform-origin: center; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f97316; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col selection:bg-orange-500 selection:text-white">
+
+    <!-- Header Section -->
+    <header class="pt-16 pb-10 px-4 text-center relative overflow-hidden">
+        <!-- Animated "Absolute Defense" SVG Shield -->
+        <div class="flex justify-center mb-6 animate-float">
+            <svg class="w-28 h-28 animate-shield" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M50 5L10 25V50C10 70 25 85 50 95C75 85 90 70 90 50V25L50 5Z" stroke="url(#orange_grad)" stroke-width="4" stroke-linejoin="round" fill="rgba(249, 115, 22, 0.05)"/>
+                <path d="M50 25V75M30 40L50 60L70 40" stroke="#f97316" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="50" cy="50" r="35" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4 4" class="animate-gear"/>
+                <defs>
+                    <linearGradient id="orange_grad" x1="10" y1="5" x2="90" y2="95" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#f97316"/>
+                        <stop offset="1" stop-color="#fbbf24"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+        </div>
+        
+        <h1 class="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight"><span class="gradient-text">Privacy Policy</span></h1>
+        <p class="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto">Your data is secured by our absolute defense. Welcome to <strong class="text-white">Anime Movies BD</strong>.</p>
+        <p class="text-xs text-orange-500/70 mt-3 font-semibold tracking-widest uppercase">Last Updated: March 2026</p>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 w-full space-y-6">
+        
+        <!-- Intro Card -->
+        <div class="glass-card rounded-2xl p-6 md:p-8">
+            <div class="flex items-center gap-3 mb-4">
+                <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <h2 class="text-2xl font-bold text-white">1. Introduction</h2>
+            </div>
+            <p class="text-slate-300 leading-relaxed">
+                Thank you for using <strong>Anime Movies BD</strong>. We are committed to protecting your privacy and ensuring a seamless, safe experience while you search for and watch your favorite anime. This policy explains exactly how we handle the minimal data we receive when you interact with our Telegram Mini App.
+            </p>
+        </div>
+
+        <!-- Two Column Grid for specific details -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Data Collection -->
+            <div class="glass-card rounded-2xl p-6 md:p-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <svg class="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                    <h2 class="text-xl font-bold text-white">2. Data We Collect</h2>
+                </div>
+                <p class="text-slate-300 mb-3 text-sm">We only access basic info provided by the Telegram API:</p>
+                <ul class="space-y-2 text-sm text-slate-400">
+                    <li class="flex items-start gap-2">
+                        <span class="text-orange-500 mt-0.5">▹</span> 
+                        <span><strong>Telegram ID:</strong> To verify channel subscriptions.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-orange-500 mt-0.5">▹</span> 
+                        <span><strong>Profile Info:</strong> (Name/Username) Used <em>only</em> if you submit a manual report to admins.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-orange-500 mt-0.5">▹</span> 
+                        <span><strong>Searches:</strong> Anonymous movie requests to help us add new content.</span>
+                    </li>
+                </ul>
+                <div class="mt-4 p-3 bg-blue-900/20 border border-blue-500/20 rounded-lg">
+                    <p class="text-xs text-blue-300 text-center">We do <strong>not</strong> store your data in any external database.</p>
+                </div>
+            </div>
+
+            <!-- Third Parties -->
+            <div class="glass-card rounded-2xl p-6 md:p-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                    <h2 class="text-xl font-bold text-white">3. Third-Party Services</h2>
+                </div>
+                <p class="text-slate-300 mb-3 text-sm">To keep the bot free, we rely on external services:</p>
+                <ul class="space-y-3 text-sm text-slate-400">
+                    <li>
+                        <strong class="text-slate-200">Monetag:</strong> Used to display ads. Monetag may use cookies or device data to serve relevant ads.
+                    </li>
+                    <li>
+                        <strong class="text-slate-200">Terabox:</strong> Hosts our anime. Clicking watch links redirects you to Terabox, subject to their privacy policies.
+                    </li>
+                    <li>
+                        <strong class="text-slate-200">Telegram:</strong> Our infrastructure runs within Telegram's secure ecosystem.
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Security & Contact -->
+        <div class="glass-card rounded-2xl p-6 md:p-8">
+            <div class="flex items-center gap-3 mb-4">
+                <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                <h2 class="text-2xl font-bold text-white">4. Security & Contact</h2>
+            </div>
+            <p class="text-slate-300 leading-relaxed mb-4">
+                Your privacy is our priority. Since we do not maintain a permanent user database, your profile information is inherently protected by Telegram's native end-to-end encryption and security protocols. We will never sell or share your data with marketing agencies.
+            </p>
+            <p class="text-slate-300 leading-relaxed">
+                Need help or have questions? Reach out to our admins directly via the <strong>Report</strong> button inside the Anime Movies BD Mini App.
+            </p>
+        </div>
+
+    </main>
+
+    <!-- Footer / Branding -->
+    <footer class="mt-auto py-8 text-center border-t border-slate-800 bg-slate-900/50 backdrop-blur-sm relative z-10">
+        <div class="flex flex-col items-center justify-center gap-2">
+            <!-- PSBDx Logo SVG Graphic -->
+            <svg class="w-10 h-10 text-orange-500 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12h4l3-9 5 18 3-9h5"/>
+            </svg>
+            <p class="text-slate-400 font-medium">Built with <span class="text-red-500 animate-pulse inline-block">❤️</span> by <span class="font-bold text-white tracking-wide">PSBDx</span></p>
+            <p class="text-xs text-slate-600 mt-1">© 2026 Anime Movies BD. All rights reserved.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
+
+
