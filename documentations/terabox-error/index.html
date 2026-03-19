@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terabox Solutions | Anime Movies BD</title>
+    
+    <!-- Tab Icon (Favicon) Setup -->
+    <link rel="icon" href="https://animemovies-bd.psbdx.rf.gd/resources/Untitled%20design_20260318_233915_0000.png" type="image/png">
+    <link rel="shortcut icon" href="https://animemovies-bd.psbdx.rf.gd/resources/Untitled%20design_20260318_233915_0000.png" type="image/png">
+    <link rel="apple-touch-icon" href="https://animemovies-bd.psbdx.rf.gd/resources/Untitled%20design_20260318_233915_0000.png">
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Animations & Styling */
+        body { 
+            background-color: #020617; /* Slate 950 */
+            background-image: radial-gradient(circle at top right, rgba(249, 115, 22, 0.15), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.15), transparent 40%);
+            color: #cbd5e1; 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            overflow-x: hidden;
+        }
+        
+        .glass-nav {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .glass-card { 
+            background: rgba(30, 41, 59, 0.4); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(59, 130, 246, 0.3); /* Blue hover for Terabox theme */
+            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.15);
+        }
+
+        .glass-card.warning-card:hover {
+            border-color: rgba(234, 179, 8, 0.4); /* Yellow hover for warning */
+            box-shadow: 0 10px 40px rgba(234, 179, 8, 0.15);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #3b82f6, #60a5fa); /* Terabox Blue */
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col selection:bg-blue-500 selection:text-white pt-20">
+
+    <!-- Top Navigation Bar -->
+    <nav class="glass-nav fixed top-0 left-0 right-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Small 1:1 Logo & Site Name -->
+            <a href="https://animemovies-bd.psbdx.rf.gd/" class="flex items-center gap-3 group transition-transform duration-300 hover:scale-105 focus:outline-none">
+                <img src="https://animemovies-bd.psbdx.rf.gd/resources/Untitled%20design_20260318_233915_0000.png" 
+                     alt="Anime Movies BD Logo" 
+                     class="w-10 h-10 object-cover rounded-full border border-slate-700 group-hover:border-blue-500 transition-colors shadow-[0_0_10px_rgba(59,130,246,0.2)]">
+                <span class="font-bold text-lg text-white tracking-wide group-hover:text-blue-400 transition-colors hidden sm:block">Anime Movies BD</span>
+            </a>
+            
+            <div class="flex items-center gap-3 sm:gap-4">
+                <!-- Language Toggle -->
+                <div class="flex items-center bg-slate-800/60 border border-slate-700 rounded-lg p-1">
+                    <button onclick="switchLang('en')" id="btn-en" class="px-3 py-1 rounded-md text-xs sm:text-sm font-semibold transition-colors bg-blue-500 text-white shadow-md">EN</button>
+                    <button onclick="switchLang('bn')" id="btn-bn" class="px-3 py-1 rounded-md text-xs sm:text-sm font-semibold transition-colors text-slate-400 hover:text-white">BN</button>
+                </div>
+
+                <!-- Quick Link to Bot -->
+                <a href="https://t.me/animemovie_bd_bot" target="_blank" class="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-300 hover:text-white bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 px-3 sm:px-4 py-1.5 rounded-full transition-all">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.06-.2-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z"/></svg>
+                    <span class="hidden sm:block">Launch Bot</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-3xl mx-auto w-full px-4 py-8 sm:py-12 flex flex-col gap-6 fade-in z-10">
+        
+        <!-- Title Section -->
+        <div class="text-center mb-4">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500/10 text-blue-500 mb-4 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+                <i class="fa-solid fa-cloud-arrow-down text-2xl"></i>
+            </div>
+            <h2 id="page-title" class="text-3xl md:text-4xl font-bold text-white mb-3">Terabox Link Solutions</h2>
+            <p id="page-subtitle" class="text-slate-400 text-lg">Follow these steps if Terabox video links are not opening or loading.</p>
+        </div>
+
+        <!-- Warning: Just a few moments late Error -->
+        <div class="glass-card warning-card rounded-2xl p-6 sm:p-8 border-yellow-500/20 bg-yellow-900/10 relative overflow-hidden">
+            <div class="absolute -right-6 -top-6 opacity-[0.05] pointer-events-none">
+                <i class="fa-solid fa-hourglass-end text-[150px] text-yellow-500"></i>
+            </div>
+            <h3 id="late-error-title" class="text-xl font-bold text-white mb-3 flex items-center gap-2 relative z-10">
+                <i class="fa-solid fa-clock text-yellow-500 animate-pulse"></i> "Sorry, you are just a few moments late"
+            </h3>
+            <p id="late-error-desc" class="text-slate-300 leading-relaxed text-sm sm:text-base relative z-10">
+                If you see this exact message on Terabox, it means the link has <b>expired</b> or the server is overloaded. <br><br>
+                <b class="text-yellow-400">How to solve:</b> Simply go back to our Telegram Bot and request the movie link again to generate a fresh, working link. If a fresh link still shows this error, the file might be deleted (please report it).
+            </p>
+        </div>
+
+        <!-- Steps Card (Glassmorphism) -->
+        <div class="glass-card rounded-2xl p-6 sm:p-8">
+            <h3 id="steps-title" class="text-xl font-bold text-white mb-6 flex items-center gap-2 border-b border-slate-700/50 pb-4">
+                <i class="fa-solid fa-shield-halved text-blue-500"></i> Basic Troubleshooting
+            </h3>
+            
+            <ul class="space-y-6">
+                <!-- Step 1: VPN / 1.1.1.1 -->
+                <li class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-blue-500 font-bold shadow-inner">1</div>
+                    <div>
+                        <h4 id="step1-title" class="font-bold text-lg text-slate-200">Use 1.1.1.1 (Warp) or VPN</h4>
+                        <p id="step1-desc" class="text-slate-400 text-sm mt-1.5 leading-relaxed">Many ISPs in Bangladesh block Terabox servers. Using the <b>1.1.1.1</b> app or any free VPN usually fixes loading issues instantly.</p>
+                    </div>
+                </li>
+                <!-- Step 2: Login -->
+                <li class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-blue-500 font-bold shadow-inner">2</div>
+                    <div>
+                        <h4 id="step2-title" class="font-bold text-lg text-slate-200">Log in to Terabox</h4>
+                        <p id="step2-desc" class="text-slate-400 text-sm mt-1.5 leading-relaxed">Sometimes links show as "empty" or continuously ask you to download the app. Make sure you are <b>logged into</b> your Terabox app or website first before clicking the link.</p>
+                    </div>
+                </li>
+                <!-- Step 3: Desktop Mode -->
+                <li class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-blue-500 font-bold shadow-inner">3</div>
+                    <div>
+                        <h4 id="step3-title" class="font-bold text-lg text-slate-200">Use Desktop Mode (Browsers)</h4>
+                        <p id="step3-desc" class="text-slate-400 text-sm mt-1.5 leading-relaxed">If you are watching on a mobile browser without the app, turn on <b>"Desktop Site"</b> from your browser's 3-dot menu. This stops annoying pop-ups.</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Emotional Appeal Card -->
+        <div class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden border-blue-500/20">
+            <div class="absolute -right-10 -top-10 opacity-[0.03] pointer-events-none">
+                <i class="fa-solid fa-server text-[200px] text-blue-500"></i>
+            </div>
+            <h3 id="emotional-title" class="text-xl font-bold mb-4 flex items-center gap-2 text-white relative z-10">
+                <i class="fa-solid fa-hand-holding-heart text-blue-400"></i> Why Terabox?
+            </h3>
+            <p id="emotional-desc" class="text-slate-300 leading-relaxed text-sm sm:text-base relative z-10">
+                Anime movies are huge in file size! To provide you with the best high-quality dual audio movies for free without expensive server costs, we rely on Terabox. We know it has some ads, but it's the only way we can store thousands of movies safely. Just like Gaara protecting the Sand Village, we are doing our best to protect our anime collection for you! 🛡️⏳
+            </p>
+        </div>
+
+        <!-- Final Report Action -->
+        <div class="glass-card bg-red-950/20 border-red-500/20 rounded-2xl p-6 sm:p-8 text-center mt-2">
+            <h3 id="report-title" class="text-lg font-bold text-white mb-2">Still having issues?</h3>
+            <p id="report-desc" class="text-slate-400 text-sm mb-5">If you've connected a VPN, logged in, and tried a fresh link but it still doesn't work, the link might be broken.</p>
+            
+            <div class="inline-block bg-slate-900/80 px-5 py-4 rounded-xl border border-slate-700/50 shadow-inner">
+                <p id="report-instruction" class="text-slate-300 text-sm flex flex-wrap items-center justify-center gap-2">
+                    Click the red 
+                    <button class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm transition-colors shadow-[0_0_10px_rgba(220,38,38,0.4)] cursor-default">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </button> 
+                    button inside the bot to report the broken link.
+                </p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer / Branding -->
+    <footer class="mt-auto py-10 text-center border-t border-slate-800 bg-slate-900/50 backdrop-blur-sm relative z-10">
+        <div class="max-w-4xl mx-auto px-4">
+            
+            <!-- Footer Navigation Menu -->
+            <div class="flex flex-wrap justify-center gap-x-8 gap-y-4 mb-8">
+                <a href="https://animemovies-bd.psbdx.rf.gd/" class="flex items-center gap-2 text-slate-400 hover:text-blue-500 transition-colors font-semibold tracking-wide">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    Home
+                </a>
+                <a href="https://animemovies-bd.psbdx.rf.gd/privacy-policy" class="flex items-center gap-2 text-slate-400 hover:text-blue-500 transition-colors font-semibold tracking-wide">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    Privacy Policy
+                </a>
+                <a href="https://t.me/animemovie_bd_bot" target="_blank" class="flex items-center gap-2 text-slate-400 hover:text-blue-500 transition-colors font-semibold tracking-wide">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    Telegram Bot
+                </a>
+            </div>
+
+            <!-- PSBDx Branding -->
+            <div class="flex flex-col items-center justify-center gap-2">
+                <p class="text-slate-400 font-medium flex items-center gap-2">
+                    Built with 
+                    <span class="text-red-500 animate-pulse">❤️</span> 
+                    by 
+                    <span class="font-bold text-white tracking-wide bg-slate-800 px-3 py-1 rounded-md border border-slate-700">PSBDx</span>
+                </p>
+                <p class="text-xs text-slate-600 mt-2">© 2026 Anime Movies BD. All rights reserved.</p>
+            </div>
+            
+        </div>
+    </footer>
+
+    <!-- JavaScript for Multilingual Support -->
+    <script>
+        const translations = {
+            en: {
+                pageTitle: "Terabox Link Solutions",
+                pageSubtitle: "Follow these steps if Terabox video links are not opening or loading.",
+                
+                lateErrorTitle: "\"Sorry, you are just a few moments late\"",
+                lateErrorDesc: "If you see this exact message on Terabox, it means the link has <b>expired</b> or the server is overloaded. <br><br><b class='text-yellow-400'>How to solve:</b> Simply go back to our Telegram Bot and request the movie link again to generate a fresh, working link. If a fresh link still shows this error, the file might be deleted (please report it).",
+
+                stepsTitle: "Basic Troubleshooting",
+                
+                step1Title: "Use 1.1.1.1 (Warp) or VPN",
+                step1Desc: "Many ISPs in Bangladesh block Terabox servers. Using the <b>1.1.1.1</b> app or any free VPN usually fixes loading issues instantly.",
+                
+                step2Title: "Log in to Terabox",
+                step2Desc: "Sometimes links show as 'empty' or continuously ask you to download the app. Make sure you are <b>logged into</b> your Terabox app or website first before clicking the link.",
+                
+                step3Title: "Use Desktop Mode (Browsers)",
+                step3Desc: "If you are watching on a mobile browser without the app, turn on <b>'Desktop Site'</b> from your browser's 3-dot menu. This stops annoying pop-ups.",
+                
+                emotionalTitle: "Why Terabox?",
+                emotionalDesc: "Anime movies are huge in file size! To provide you with the best high-quality dual audio movies for free without expensive server costs, we rely on Terabox. We know it has some ads, but it's the only way we can store thousands of movies safely. Just like Gaara protecting the Sand Village, we are doing our best to protect our anime collection for you! 🛡️⏳",
+                
+                reportTitle: "Still having issues?",
+                reportDesc: "If you've connected a VPN, logged in, and tried a fresh link but it still doesn't work, the link might be broken.",
+                reportInstruction: 'Click the red <button class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm transition-colors shadow-[0_0_10px_rgba(220,38,38,0.4)] cursor-default"><i class="fa-solid fa-triangle-exclamation"></i></button> button inside the bot to report the broken link.'
+            },
+            bn: {
+                pageTitle: "Terabox লিংকের সমস্যার সমাধান",
+                pageSubtitle: "Terabox এর ভিডিও লিংক ওপেন না হলে নিচের নিয়মগুলো অনুসরণ করুন।",
+                
+                lateErrorTitle: "\"Sorry, you are just a few moments late\"",
+                lateErrorDesc: "Terabox-এ যদি আপনি এই লেখাটি দেখতে পান, এর মানে হলো লিংকটির <b>মেয়াদ শেষ</b> (Expire) হয়ে গেছে বা সার্ভারে অনেক চাপ। <br><br><b class='text-yellow-400'>কীভাবে সমাধান করবেন:</b> আমাদের টেলিগ্রাম বটে ফিরে যান এবং মুভিটির জন্য আবার নতুন করে লিংক জেনারেট করুন। এরপরও কাজ না হলে লিংকটি নষ্ট হয়ে থাকতে পারে (দয়া করে রিপোর্ট করুন)।",
+
+                stepsTitle: "প্রাথমিক সমাধান",
+                
+                step1Title: "1.1.1.1 (Warp) অথবা VPN ব্যবহার করুন",
+                step1Desc: "বাংলাদেশের অনেক ওয়াইফাই/সিম কোম্পানি Terabox ব্লক করে রাখে। <b>1.1.1.1</b> অ্যাপ বা যেকোনো VPN কানেক্ট করলে লিংক সাথে সাথে কাজ করবে।",
+                
+                step2Title: "Terabox-এ লগইন করুন",
+                step2Desc: "অনেক সময় লিংক খালি দেখায় বা বারবার অ্যাপ নামাতে বলে। লিংক ওপেন করার আগে নিশ্চিত করুন আপনার Terabox অ্যাপে বা ওয়েবসাইটে <b>লগইন করা</b> আছে।",
+                
+                step3Title: "ডেস্কটপ মোড (ব্রাউজারের জন্য)",
+                step3Desc: "অ্যাপ ছাড়া মোবাইল ব্রাউজারে দেখতে চাইলে ব্রাউজারের থ্রি-ডট মেনু থেকে <b>'Desktop Site'</b> অন করে নিন। এতে বারবার বিরক্তিকর পপ-আপ আসবে না।",
+                
+                emotionalTitle: "আমরা কেন Terabox ব্যবহার করি?",
+                emotionalDesc: "অ্যানিমে মুভিগুলোর সাইজ অনেক বড় হয়! সার্ভারের বিশাল খরচ ছাড়া আপনাদের হাই-কোয়ালিটি মুভিগুলো ফ্রিতে দেওয়ার জন্যই আমরা Terabox ব্যবহার করি। আমরা জানি এতে কিছু অ্যাড আছে, কিন্তু হাজার হাজার মুভি নিরাপদে রাখার এটাই একমাত্র উপায়। ঠিক যেমন গায়ারা তার বালুর সাহায্যে পুরো স্যান্ড ভিলেজকে রক্ষা করেছিল, তেমনি আমরাও আপনাদের জন্য আমাদের অ্যানিমে কালেকশন রক্ষা করার সর্বোচ্চ চেষ্টা করছি! 🛡️⏳",
+                
+                reportTitle: "এরপরও কাজ হচ্ছে না?",
+                reportDesc: "আপনি যদি VPN কানেক্ট করেন, লগইন করেন এবং নতুন লিংকও ট্রাই করেন কিন্তু তারপরও কাজ না হয়, তবে লিংকটি নষ্ট হয়ে থাকতে পারে।",
+                reportInstruction: 'নষ্ট লিংক রিপোর্ট করতে বটের ভেতরে থাকা লাল <button class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm transition-colors shadow-[0_0_10px_rgba(220,38,38,0.4)] cursor-default"><i class="fa-solid fa-triangle-exclamation"></i></button> বোতামটিতে ক্লিক করুন।'
+            }
+        };
+
+        function switchLang(lang) {
+            const btnEn = document.getElementById('btn-en');
+            const btnBn = document.getElementById('btn-bn');
+            
+            // Toggle active state styling (Using Blue theme for Terabox page)
+            if (lang === 'en') {
+                btnEn.classList.replace('text-slate-400', 'text-white');
+                btnEn.classList.add('bg-blue-500', 'shadow-md');
+                btnEn.classList.remove('hover:text-white');
+                
+                btnBn.classList.replace('text-white', 'text-slate-400');
+                btnBn.classList.remove('bg-blue-500', 'shadow-md');
+                btnBn.classList.add('hover:text-white');
+            } else {
+                btnBn.classList.replace('text-slate-400', 'text-white');
+                btnBn.classList.add('bg-blue-500', 'shadow-md');
+                btnBn.classList.remove('hover:text-white');
+                
+                btnEn.classList.replace('text-white', 'text-slate-400');
+                btnEn.classList.remove('bg-blue-500', 'shadow-md');
+                btnEn.classList.add('hover:text-white');
+            }
+
+            // Update texts
+            document.getElementById('page-title').textContent = translations[lang].pageTitle;
+            document.getElementById('page-subtitle').textContent = translations[lang].pageSubtitle;
+            
+            // Update the New Late Error Card
+            document.getElementById('late-error-title').innerHTML = `<i class="fa-solid fa-clock text-yellow-500 animate-pulse"></i> ${translations[lang].lateErrorTitle}`;
+            document.getElementById('late-error-desc').innerHTML = translations[lang].lateErrorDesc;
+
+            document.getElementById('steps-title').innerHTML = `<i class="fa-solid fa-shield-halved text-blue-500"></i> ${translations[lang].stepsTitle}`;
+            
+            document.getElementById('step1-title').textContent = translations[lang].step1Title;
+            document.getElementById('step1-desc').innerHTML = translations[lang].step1Desc;
+            
+            document.getElementById('step2-title').textContent = translations[lang].step2Title;
+            document.getElementById('step2-desc').innerHTML = translations[lang].step2Desc;
+            
+            document.getElementById('step3-title').textContent = translations[lang].step3Title;
+            document.getElementById('step3-desc').innerHTML = translations[lang].step3Desc;
+            
+            document.getElementById('emotional-title').innerHTML = `<i class="fa-solid fa-hand-holding-heart text-blue-400"></i> ${translations[lang].emotionalTitle}`;
+            document.getElementById('emotional-desc').innerHTML = translations[lang].emotionalDesc;
+            
+            document.getElementById('report-title').textContent = translations[lang].reportTitle;
+            document.getElementById('report-desc').textContent = translations[lang].reportDesc;
+            document.getElementById('report-instruction').innerHTML = translations[lang].reportInstruction;
+        }
+    </script>
+</body>
+</html>
+
+
