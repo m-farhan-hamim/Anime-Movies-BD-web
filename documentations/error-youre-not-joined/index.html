@@ -1,0 +1,514 @@
+import os
+import json
+import asyncio
+from datetime import datetime, timezone, timedelta
+from aiohttp import web
+import aiohttp
+
+# --- ⚙️ CONFIGURATION ---
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
+WEBAPP_URL = os.environ.get("WEBAPP_URL", "https://your-app-name.onrender.com") 
+
+REQUEST_GROUP_ID = "-1003807358631" # Where missing movie requests go
+REPORT_GROUP_ID = "-1003807358631"  # Where user reports go 
+
+CHANNEL_ID = "-1003775739221"       # The channel users MUST join (@animemovie_bd)
+CHANNEL_LINK = "https://t.me/animemovie_bd"
+
+# --- 🍿 DATABASE HELPER ---
+def load_movies():
+    """Reads the movies from the JSON file dynamically"""
+    try:
+        # We use encoding='utf-8' so Bangla/Hindi text loads perfectly!
+        with open('movies.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error loading movies.json: {e}")
+        return [] # Return empty list if file is missing or broken
+
+# --- 🌐 ASYNC TELEGRAM API HELPER ---
+async def call_telegram(method, payload=None):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/{method}"
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=payload or {}) as response:
+            return await response.json()
+
+async def is_subscribed(user_id):
+    """Checks if a user is in the required channel"""
+    res = await call_telegram('getChatMember', {'chat_id': CHANNEL_ID, 'user_id': user_id})
+    if res.get('ok'):
+        status = res['result']['status']
+        return status in ['member', 'administrator', 'creator']
+    return False
+
+# --- 🖥️ THE FRONTEND HTML (MINI APP) ---
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Anime Movies BD</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src='//libtl.com/sdk.js' data-zone='10746210' data-sdk='show_10746210'></script>
+    <style>
+        body { background-color: #0f172a; color: white; font-family: sans-serif; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #334155; }
+        /* Custom scrollbar for web app */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body class="p-4 relative min-h-screen">
+
+    <!-- ⏳ Loading Screen -->
+    <div id="loadingScreen" class="fixed inset-0 bg-slate-900 z-[60] flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-orange-500 mb-4"></div>
+        <p class="text-orange-500 font-bold animate-pulse">Verifying Access...</p>
+    </div>
+
+    <!-- 🛑 Access Denied Screen (Gaara's Absolute Defense!) -->
+    <div id="accessDeniedScreen" class="hidden fixed inset-0 bg-slate-900 z-40 flex flex-col items-center justify-center p-6 text-center">
+        <div class="text-6xl mb-4">🛑</div>
+        <h1 class="text-3xl font-bold text-red-500 mb-2">Access Denied</h1>
+        <p class="text-slate-300 mb-8 max-w-xs text-sm">You must join our official Telegram channel to use this app and watch movies!</p>
+        
+        <a href="https://t.me/animemovie_bd" target="_blank" class="w-full max-w-sm bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl mb-3 shadow-lg transition">
+            📢 Join Channel Now
+        </a>
+        
+        <!-- Quick refresh button so they don't have to close the app after joining -->
+        <button onclick="verifyUserAccess()" class="w-full max-w-sm bg-green-600 hover:bg-green-500 text-white font-bold py-3.5 rounded-xl mb-6 shadow-lg transition">
+            🔄 I Have Joined (Refresh)
+        </button>
+
+        <a href="https://animemovies-bd.psbdx.rf.gd/documentations/error-youre-not-joined/" target="_blank" class="w-full max-w-sm bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3.5 rounded-xl border border-slate-700 shadow-lg transition">
+            📖 Why am I seeing this?
+        </a>
+    </div>
+
+    <!-- 🍥 Main App Content (Hidden until verified) -->
+    <div id="mainAppContent" class="hidden max-w-md mx-auto pb-20">
+        <h1 class="text-2xl font-bold text-center text-orange-500 mb-6 mt-2">🍥 Anime Movies BD</h1>
+        
+        <!-- Search Bar -->
+        <div class="mb-6">
+            <input type="text" id="searchInput" onkeyup="handleSearch()" placeholder="Search anime or dubb language..." 
+                   class="w-full p-3 rounded-lg bg-slate-800 text-white border border-slate-600 focus:outline-none focus:border-orange-500 shadow-inner">
+        </div>
+
+        <!-- Dynamic Movies List -->
+        <div id="moviesContainer" class="grid grid-cols-2 gap-4"></div>
+
+        <!-- Inform Team Area -->
+        <div id="noResults" class="hidden text-center mt-10 p-4 glass-panel rounded-xl">
+            <p class="text-slate-300 mb-4 text-sm">Can't find your favorite anime?</p>
+            <button id="informBtn" onclick="informTeamAd()" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 px-6 rounded-lg transition shadow-lg">
+                📢 Watch Ad to Request Movie
+            </button>
+            <p id="informSuccess" class="hidden text-green-400 mt-3 font-bold text-sm">✅ Request sent to our group! We'll upload it soon.</p>
+        </div>
+    </div>
+
+    <!-- ⚠️ Floating Report Button (Z-index 50 so it sits ABOVE the access denied screen) -->
+    <button onclick="openReport()" class="fixed bottom-6 right-6 bg-red-600 hover:bg-red-500 text-white p-4 rounded-full shadow-lg shadow-red-500/40 z-50 transition transform hover:scale-110 hidden" id="reportBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+    </button>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="fixed inset-0 bg-slate-900/95 hidden flex items-center justify-center z-[70] p-4 transition-opacity">
+        <div class="glass-panel p-6 rounded-2xl w-full max-w-sm shadow-2xl border border-slate-700">
+            
+            <!-- Step 1: Documentation Suggestion -->
+            <div id="reportStep1" class="text-center">
+                <h2 class="text-xl font-bold mb-3 text-white">💡 Need Help?</h2>
+                <p class="text-slate-300 text-sm mb-5">Please check this page first, you might find a solution to your issue!</p>
+                <a href="https://animemovies-bd.psbdx.rf.gd/documentations/" target="_blank" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl mb-4 block text-center shadow-lg transition">
+                    📖 Read Documentation
+                </a>
+                <button onclick="showReportForm()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-3 rounded-xl mb-3 transition text-sm">
+                    Can't find solution? Proceed
+                </button>
+                <button onclick="closeReport()" class="w-full text-slate-400 hover:text-white py-2 text-sm">Cancel</button>
+            </div>
+
+            <!-- Step 2: Actual Report Form -->
+            <div id="reportStep2" class="hidden">
+                <h2 class="text-xl font-bold mb-4 text-white text-center">⚠️ Report an Issue</h2>
+                
+                <label class="block text-slate-400 text-xs mb-1">Your Name (Auto-filled)</label>
+                <input type="text" id="reportName" readonly class="w-full p-3 rounded-lg bg-slate-800/50 text-slate-500 border border-slate-700 mb-4 cursor-not-allowed outline-none">
+                
+                <label class="block text-slate-400 text-xs mb-1">Describe the Issue</label>
+                <textarea id="reportIssue" rows="3" placeholder="Broken link, wrong dub, etc..." class="w-full p-3 rounded-lg bg-slate-800 text-white border border-slate-600 focus:outline-none focus:border-red-500 mb-4"></textarea>
+
+                <button onclick="submitReport()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl mb-3 transition">Submit Report</button>
+                <button onclick="closeReport()" class="w-full text-slate-400 hover:text-white py-2 text-sm">Cancel</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Ad Error Modal -->
+    <div id="adErrorModal" class="fixed inset-0 bg-slate-900/95 hidden flex items-center justify-center z-[70] p-4 transition-opacity">
+        <div class="glass-panel p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl border border-red-700/50">
+            <h2 class="text-xl font-bold mb-3 text-red-500">🚫 Ad Failed to Load</h2>
+            <p class="text-slate-300 text-sm mb-6">It seems the ad couldn't load. This is usually caused by an Ad-blocker or Secure DNS.</p>
+            <a href="https://animemovies-bd.psbdx.rf.gd/documentations/ad-blocker/" target="_blank" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3.5 rounded-xl mb-3 block text-center shadow-lg transition">
+                🛠️ How to Fix Ad-Blocker
+            </a>
+            <button onclick="closeAdError()" class="text-slate-400 hover:text-white mt-2 text-sm font-medium">Close</button>
+        </div>
+    </div>
+
+    <!-- Movie Action Modal -->
+    <div id="movieModal" class="fixed inset-0 bg-slate-900/95 hidden flex items-center justify-center z-[70] p-4 transition-opacity">
+        <div class="glass-panel p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl border border-slate-700">
+            <img id="modalImg" src="" class="w-28 h-28 mx-auto rounded-xl mb-4 object-cover border-2 border-slate-700">
+            <h2 id="modalTitle" class="text-xl font-bold mb-1 text-white"></h2>
+            <p id="modalDubb" class="text-orange-400 text-sm font-semibold mb-6 uppercase"></p>
+
+            <button id="watchAdBtn" onclick="watchAd()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl mb-3 shadow-lg transition">📺 Watch Ad to Unlock</button>
+            <a id="teraboxLink" href="#" target="_blank" class="hidden w-full bg-green-500 hover:bg-green-400 text-white font-bold py-3.5 rounded-xl mb-3 block text-center shadow-lg transition">🍿 Open Terabox Link</a>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-white mt-4 text-sm font-medium">CANCEL</button>
+        </div>
+    </div>
+
+    <script>
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+
+        const allMovies = __MOVIES_JSON__;
+        let currentSearchQuery = "";
+        let currentSelectedMovie = null;
+        let adsWatchedCount = 0;
+
+        // Get Telegram User Data
+        const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+        const tgUserId = tgUser?.id;
+        const tgFullName = tgUser ? (tgUser.first_name + " " + (tgUser.last_name || "")).trim() : "Unknown Ninja";
+        const tgUsername = tgUser?.username ? "@" + tgUser.username : "No Username";
+
+        // --- 🛡️ VERIFY ACCESS LOGIC ---
+        async function verifyUserAccess() {
+            // Show Loader, Hide everything else
+            document.getElementById('loadingScreen').classList.remove('hidden');
+            document.getElementById('accessDeniedScreen').classList.add('hidden');
+            document.getElementById('mainAppContent').classList.add('hidden');
+            document.getElementById('reportBtn').classList.add('hidden');
+
+            if (!tgUserId) {
+                // Not running in Telegram, or failed to get ID
+                showAccessDenied();
+                return;
+            }
+
+            try {
+                const response = await fetch('/check_join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: tgUserId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.joined) {
+                    showMainApp();
+                } else {
+                    showAccessDenied();
+                }
+            } catch (err) {
+                console.error("Verification error:", err);
+                showAccessDenied(); // Default to secure if request fails
+            }
+        }
+
+        function showMainApp() {
+            document.getElementById('loadingScreen').classList.add('hidden');
+            document.getElementById('mainAppContent').classList.remove('hidden');
+            document.getElementById('reportBtn').classList.remove('hidden'); // Show report button
+            renderMovies(allMovies);
+        }
+
+        function showAccessDenied() {
+            document.getElementById('loadingScreen').classList.add('hidden');
+            document.getElementById('accessDeniedScreen').classList.remove('hidden');
+            document.getElementById('reportBtn').classList.remove('hidden'); // Keep report button alive!
+        }
+
+        // --- RENDER & SEARCH ---
+        function renderMovies(moviesArray) {
+            const container = document.getElementById('moviesContainer');
+            container.innerHTML = '';
+            moviesArray.forEach(movie => {
+                const card = `<div onclick="openModal('${movie.id}')" class="glass-panel rounded-xl p-3 cursor-pointer hover:border-orange-500 transition shadow-lg relative overflow-hidden group">
+                        <img src="${movie.thumb}" class="w-full aspect-square object-cover rounded-lg mb-3 group-hover:scale-105 transition duration-300">
+                        <div class="absolute top-4 right-4 bg-orange-500 text-xs font-bold px-2 py-1 rounded-md shadow-md">${movie.dubb}</div>
+                        <h3 class="font-bold text-sm text-white truncate">${movie.name}</h3>
+                    </div>`;
+                container.innerHTML += card;
+            });
+        }
+
+        function handleSearch() {
+            currentSearchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+            const filtered = allMovies.filter(m => m.name.toLowerCase().includes(currentSearchQuery) || m.dubb.toLowerCase().includes(currentSearchQuery));
+            renderMovies(filtered);
+            
+            if (filtered.length === 0 && currentSearchQuery.length > 0) {
+                document.getElementById('noResults').classList.remove('hidden');
+                document.getElementById('informBtn').classList.remove('hidden');
+                document.getElementById('informSuccess').classList.add('hidden');
+            } else {
+                document.getElementById('noResults').classList.add('hidden');
+            }
+        }
+
+        // --- AD TO REQUEST MOVIE ---
+        function informTeamAd() {
+            if (typeof show_10746210 === 'function') {
+                show_10746210().then(() => {
+                    sendMovieRequest();
+                }).catch(() => {
+                    showAdError();
+                });
+            } else {
+                showAdError();
+            }
+        }
+
+        async function sendMovieRequest() {
+            document.getElementById('informBtn').classList.add('hidden');
+            try {
+                await fetch('/inform', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ movie_name: currentSearchQuery })
+                });
+                document.getElementById('informSuccess').classList.remove('hidden');
+            } catch (err) {
+                document.getElementById('informBtn').classList.remove('hidden');
+                window.Telegram.WebApp.showAlert("Connection error.");
+            }
+        }
+
+        // --- REPORT FEATURE ---
+        function openReport() {
+            document.getElementById('reportName').value = tgFullName;
+            // Reset to Step 1
+            document.getElementById('reportStep1').classList.remove('hidden');
+            document.getElementById('reportStep2').classList.add('hidden');
+            document.getElementById('reportModal').classList.remove('hidden');
+        }
+
+        function showReportForm() {
+            document.getElementById('reportStep1').classList.add('hidden');
+            document.getElementById('reportStep2').classList.remove('hidden');
+        }
+
+        function closeReport() {
+            document.getElementById('reportModal').classList.add('hidden');
+            document.getElementById('reportIssue').value = "";
+        }
+
+        async function submitReport() {
+            const issue = document.getElementById('reportIssue').value.trim();
+            if(!issue) return window.Telegram.WebApp.showAlert("Please describe the issue.");
+            
+            try {
+                await fetch('/report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: tgFullName, username: tgUsername, issue: issue })
+                });
+                window.Telegram.WebApp.showAlert("✅ Report sent to admin group!");
+                closeReport();
+            } catch (err) {
+                window.Telegram.WebApp.showAlert("Error sending report.");
+            }
+        }
+
+        // --- AD ERROR MODAL ---
+        function showAdError() {
+            document.getElementById('adErrorModal').classList.remove('hidden');
+        }
+
+        function closeAdError() {
+            document.getElementById('adErrorModal').classList.add('hidden');
+        }
+
+        // --- MOVIE MODALS ---
+        function openModal(id) {
+            currentSelectedMovie = allMovies.find(m => m.id === id);
+            adsWatchedCount = 0; 
+            document.getElementById('modalTitle').innerText = currentSelectedMovie.name;
+            document.getElementById('modalDubb').innerText = `${currentSelectedMovie.dubb} Dubb`;
+            document.getElementById('modalImg').src = currentSelectedMovie.thumb;
+            updateModalUI();
+            document.getElementById('movieModal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('movieModal').classList.add('hidden'); }
+
+        function updateModalUI() {
+            if (adsWatchedCount >= currentSelectedMovie.required_ads) {
+                document.getElementById('watchAdBtn').classList.add('hidden');
+                document.getElementById('teraboxLink').classList.remove('hidden');
+                document.getElementById('teraboxLink').href = currentSelectedMovie.link;
+            } else {
+                document.getElementById('watchAdBtn').classList.remove('hidden');
+                document.getElementById('teraboxLink').classList.add('hidden');
+                document.getElementById('watchAdBtn').innerText = `📺 Watch Ad (${adsWatchedCount}/${currentSelectedMovie.required_ads}) to Unlock`;
+            }
+        }
+
+        function watchAd() {
+            if (typeof show_10746210 === 'function') {
+                show_10746210().then(() => {
+                    adsWatchedCount++;
+                    updateModalUI();
+                }).catch(() => { 
+                    showAdError(); 
+                });
+            } else {
+                showAdError();
+            }
+        }
+
+        // 🔥 FIRE UP VERIFICATION ON LOAD
+        verifyUserAccess();
+
+    </script>
+</body>
+</html>
+"""
+
+# --- 🚀 AIOHTTP WEB ROUTES & HANDLERS ---
+
+async def handle_index(request):
+    movies_data = load_movies()
+    movies_json = json.dumps(movies_data)
+    html = HTML_TEMPLATE.replace("__MOVIES_JSON__", movies_json)
+    return web.Response(text=html, content_type='text/html')
+
+# 🆕 New Endpoint to secretly verify users!
+async def handle_check_join(request):
+    try:
+        data = await request.json()
+        user_id = data.get("user_id")
+        
+        if not user_id:
+            return web.json_response({"joined": False})
+            
+        # Check against Telegram API
+        is_joined = await is_subscribed(user_id)
+        return web.json_response({"joined": is_joined})
+    except Exception as e:
+        print(f"Error checking join status: {e}")
+        return web.json_response({"joined": False})
+
+async def handle_inform(request):
+    try:
+        data = await request.json()
+        message_text = f"📢 **New Anime Request!**\n\nSomeone couldn't find: `{data.get('movie_name', 'Unknown')}`\n\nAdmins, please upload it soon! 🚀"
+        await call_telegram('sendMessage', {'chat_id': REQUEST_GROUP_ID, 'text': message_text, 'parse_mode': 'Markdown'})
+        return web.json_response({"status": "success"})
+    except:
+        return web.json_response({"status": "error"}, status=500)
+
+async def handle_report(request):
+    try:
+        data = await request.json()
+        # Get BD Time (+6)
+        bd_tz = timezone(timedelta(hours=6))
+        current_time = datetime.now(bd_tz).strftime("%H:%M | %d/%m/%Y")
+        
+        report_text = (
+            f"🚨 **New User Report**\n\n"
+            f"👤 **User:** {data.get('name')} ({data.get('username')})\n"
+            f"⏰ **Time:** `{current_time}`\n\n"
+            f"📝 **Reason/Issue:**\n`{data.get('issue')}`"
+        )
+        
+        await call_telegram('sendMessage', {'chat_id': REPORT_GROUP_ID, 'text': report_text, 'parse_mode': 'Markdown'})
+        return web.json_response({"status": "success"})
+    except:
+        return web.json_response({"status": "error"}, status=500)
+
+async def send_main_menu(chat_id):
+    reply_markup = {"inline_keyboard": [[{"text": "🎬 Open Anime Movies BD", "web_app": {"url": WEBAPP_URL}}]]}
+    await call_telegram('sendMessage', {
+        'chat_id': chat_id,
+        'text': "Welcome to **Anime Movies BD**! 🍿\n\nClick the button below to search and watch your favorite anime.",
+        'parse_mode': 'Markdown',
+        'reply_markup': reply_markup
+    })
+
+async def handle_webhook(request):
+    try:
+        update = await request.json()
+        
+        if "callback_query" in update:
+            call_id = update["callback_query"]["id"]
+            user_id = update["callback_query"]["from"]["id"]
+            chat_id = update["callback_query"]["message"]["chat"]["id"]
+            data = update["callback_query"]["data"]
+            
+            if data == "verify_join":
+                if await is_subscribed(user_id):
+                    await call_telegram('answerCallbackQuery', {'callback_query_id': call_id, 'text': "✅ Verified! Thanks for joining."})
+                    await call_telegram('deleteMessage', {'chat_id': chat_id, 'message_id': update["callback_query"]["message"]["message_id"]})
+                    await send_main_menu(chat_id)
+                else:
+                    await call_telegram('answerCallbackQuery', {'callback_query_id': call_id, 'text': "❌ You haven't joined the channel yet!", 'show_alert': True})
+            return web.Response(text="OK")
+
+        if "message" in update and "text" in update["message"]:
+            text = update["message"]["text"]
+            chat_id = update["message"]["chat"]["id"]
+            user_id = update["message"]["from"]["id"]
+            
+            if text.startswith("/start"):
+                if await is_subscribed(user_id):
+                    await send_main_menu(chat_id)
+                else:
+                    reply_markup = {
+                        "inline_keyboard": [
+                            [{"text": "📢 Join Channel", "url": CHANNEL_LINK}],
+                            [{"text": "✅ Verify", "callback_data": "verify_join"}]
+                        ]
+                    }
+                    await call_telegram('sendMessage', {
+                        'chat_id': chat_id,
+                        'text': "👋 **Hold up!**\n\nYou must join our official channel to use this bot and watch movies.",
+                        'parse_mode': 'Markdown',
+                        'reply_markup': reply_markup
+                    })
+                    
+        return web.Response(text="OK")
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        return web.Response(text="Error", status=500)
+
+async def handle_set_webhook(request):
+    result = await call_telegram('setWebhook', {'url': f"{WEBAPP_URL}/webhook"})
+    if result.get('ok'):
+        return web.Response(text="✅ Webhook successfully set! Bot is alive.")
+    return web.Response(text=f"❌ Failed to set webhook: {result}")
+
+def init_app():
+    app = web.Application()
+    app.router.add_get('/', handle_index)
+    app.router.add_post('/check_join', handle_check_join) # 🆕 Added Endpoint
+    app.router.add_post('/inform', handle_inform)
+    app.router.add_post('/report', handle_report)
+    app.router.add_post('/webhook', handle_webhook)
+    app.router.add_get('/set_webhook', handle_set_webhook)
+    return app
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 8080))
+    app = init_app()
+    web.run_app(app, host='0.0.0.0', port=port)
