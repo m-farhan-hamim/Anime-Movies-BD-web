@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ad Loading Solutions | Anime Movies BD</title>
+    
+    <!-- Tab Icon (Favicon) Setup -->
+    <link rel="icon" href="https://animemovies-bd.psbdx.rf.gd/resources/Untitled%20design_20260318_233915_0000.png" type="image/png">
+    <link rel="shortcut icon" href="https://animemovies-bd.psbdx.rf.gd/resources/Untitled%20design_20260318_233915_0000.png" type="image/png">
+    <link rel="apple-touch-icon" href="https://animemovies-bd.psbdx.rf.gd/resources/Untitled%20design_20260318_233915_0000.png">
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Animations & Styling from your theme */
+        body { 
+            background-color: #020617; /* Slate 950 */
+            background-image: radial-gradient(circle at top right, rgba(249, 115, 22, 0.15), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.15), transparent 40%);
+            color: #cbd5e1; 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            overflow-x: hidden;
+        }
+        
+        .glass-nav {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .glass-card { 
+            background: rgba(30, 41, 59, 0.4); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(249, 115, 22, 0.3);
+            box-shadow: 0 10px 40px rgba(249, 115, 22, 0.15);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #f97316, #fbbf24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f97316; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col selection:bg-orange-500 selection:text-white pt-20">
+
+    <!-- Top Navigation Bar (From your site) -->
+    <nav class="glass-nav fixed top-0 left-0 right-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Small 1:1 Logo & Site Name -->
+            <a href="https://animemovies-bd.psbdx.rf.gd/" class="flex items-center gap-3 group transition-transform duration-300 hover:scale-105 focus:outline-none">
+                <img src="https://animemovies-bd.psbdx.rf.gd/resources/Untitled%20design_20260318_233915_0000.png" 
+                     alt="Anime Movies BD Logo" 
+                     class="w-10 h-10 object-cover rounded-full border border-slate-700 group-hover:border-orange-500 transition-colors shadow-[0_0_10px_rgba(249,115,22,0.2)]">
+                <span class="font-bold text-lg text-white tracking-wide group-hover:text-orange-400 transition-colors hidden sm:block">Anime Movies BD</span>
+            </a>
+            
+            <div class="flex items-center gap-3 sm:gap-4">
+                <!-- Language Toggle -->
+                <div class="flex items-center bg-slate-800/60 border border-slate-700 rounded-lg p-1">
+                    <button onclick="switchLang('en')" id="btn-en" class="px-3 py-1 rounded-md text-xs sm:text-sm font-semibold transition-colors bg-orange-500 text-white shadow-md">EN</button>
+                    <button onclick="switchLang('bn')" id="btn-bn" class="px-3 py-1 rounded-md text-xs sm:text-sm font-semibold transition-colors text-slate-400 hover:text-white">BN</button>
+                </div>
+
+                <!-- Quick Link to Bot -->
+                <a href="https://t.me/animemovie_bd_bot" target="_blank" class="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-300 hover:text-white bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 px-3 sm:px-4 py-1.5 rounded-full transition-all">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.06-.2-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z"/></svg>
+                    <span class="hidden sm:block">Launch Bot</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-3xl mx-auto w-full px-4 py-8 sm:py-12 flex flex-col gap-6 fade-in z-10">
+        
+        <!-- Title Section -->
+        <div class="text-center mb-4">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-500/10 text-orange-500 mb-4 border border-orange-500/20 shadow-[0_0_15px_rgba(249,115,22,0.15)]">
+                <i class="fa-solid fa-screwdriver-wrench text-2xl"></i>
+            </div>
+            <h2 id="page-title" class="text-3xl md:text-4xl font-bold text-white mb-3">Ad Loading Solutions</h2>
+            <p id="page-subtitle" class="text-slate-400 text-lg">Follow these steps if ads are not loading in our Telegram bot.</p>
+        </div>
+
+        <!-- Steps Card (Glassmorphism) -->
+        <div class="glass-card rounded-2xl p-6 sm:p-8">
+            <h3 id="steps-title" class="text-xl font-bold text-white mb-6 flex items-center gap-2 border-b border-slate-700/50 pb-4">
+                <i class="fa-solid fa-list-check text-orange-500"></i> Basic Troubleshooting
+            </h3>
+            
+            <ul class="space-y-6">
+                <li class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-orange-500 font-bold shadow-inner">1</div>
+                    <div>
+                        <h4 id="step1-title" class="font-bold text-lg text-slate-200">Turn off Ad Blockers</h4>
+                        <p id="step1-desc" class="text-slate-400 text-sm mt-1.5 leading-relaxed">If you are using any ad-blocker extensions (like uBlock Origin) or ad-blocking browsers (like Brave), please disable them or whitelist our site.</p>
+                    </div>
+                </li>
+                <li class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-orange-500 font-bold shadow-inner">2</div>
+                    <div>
+                        <h4 id="step2-title" class="font-bold text-lg text-slate-200">Disable Ad-Blocking DNS</h4>
+                        <p id="step2-desc" class="text-slate-400 text-sm mt-1.5 leading-relaxed">Go to your phone's settings > Network & Internet > Private DNS. If you are using an ad-blocking DNS (like dns.adguard.com), change it to 'Automatic' or turn it off.</p>
+                    </div>
+                </li>
+                <li class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-orange-500 font-bold shadow-inner">3</div>
+                    <div>
+                        <h4 id="step3-title" class="font-bold text-lg text-slate-200">Clear Cache & Retry</h4>
+                        <p id="step3-desc" class="text-slate-400 text-sm mt-1.5 leading-relaxed">Clear your browser or Telegram app cache, then restart the bot and try generating the link again.</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Emotional Appeal Card -->
+        <div class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden border-orange-500/20">
+            <div class="absolute -right-10 -top-10 opacity-[0.03] pointer-events-none">
+                <i class="fa-solid fa-heart text-[200px] text-orange-500"></i>
+            </div>
+            <h3 id="emotional-title" class="text-xl font-bold mb-4 flex items-center gap-2 text-white relative z-10">
+                <i class="fa-solid fa-heart text-red-500 animate-pulse"></i> We Need Your Support!
+            </h3>
+            <p id="emotional-desc" class="text-slate-300 leading-relaxed text-sm sm:text-base relative z-10">
+                Maintaining a Telegram bot, keeping servers running, and hunting down the best Anime movies for you requires an incredible amount of hard work, time, and money. We provide everything for free, so watching these short ads is the <b class="text-orange-400">only way</b> you can support our journey. Please help us keep the bot alive so we can continue serving the anime community! 🍜
+            </p>
+        </div>
+
+        <!-- Final Report Action -->
+        <div class="glass-card bg-red-950/20 border-red-500/20 rounded-2xl p-6 sm:p-8 text-center mt-2">
+            <h3 id="report-title" class="text-lg font-bold text-white mb-2">Still having issues?</h3>
+            <p id="report-desc" class="text-slate-400 text-sm mb-5">If you have tried all the steps above and the ad is still not loading, please report it to us directly from the bot.</p>
+            
+            <div class="inline-block bg-slate-900/80 px-5 py-4 rounded-xl border border-slate-700/50 shadow-inner">
+                <p id="report-instruction" class="text-slate-300 text-sm flex flex-wrap items-center justify-center gap-2">
+                    Click the red 
+                    <button class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm transition-colors shadow-[0_0_10px_rgba(220,38,38,0.4)] cursor-default">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </button> 
+                    button inside the bot to report.
+                </p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer / Branding (Exact from your site) -->
+    <footer class="mt-auto py-10 text-center border-t border-slate-800 bg-slate-900/50 backdrop-blur-sm relative z-10">
+        <div class="max-w-4xl mx-auto px-4">
+            
+            <!-- Footer Navigation Menu -->
+            <div class="flex flex-wrap justify-center gap-x-8 gap-y-4 mb-8">
+                <a href="https://animemovies-bd.psbdx.rf.gd/" class="flex items-center gap-2 text-slate-400 hover:text-orange-500 transition-colors font-semibold tracking-wide">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    Home
+                </a>
+                <a href="https://animemovies-bd.psbdx.rf.gd/privacy-policy" class="flex items-center gap-2 text-slate-400 hover:text-orange-500 transition-colors font-semibold tracking-wide">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    Privacy Policy
+                </a>
+                <a href="https://t.me/animemovie_bd_bot" target="_blank" class="flex items-center gap-2 text-slate-400 hover:text-orange-500 transition-colors font-semibold tracking-wide">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    Telegram Bot
+                </a>
+            </div>
+
+            <!-- PSBDx Branding -->
+            <div class="flex flex-col items-center justify-center gap-2">
+                <p class="text-slate-400 font-medium flex items-center gap-2">
+                    Built with 
+                    <span class="text-red-500 animate-pulse">❤️</span> 
+                    by 
+                    <span class="font-bold text-white tracking-wide bg-slate-800 px-3 py-1 rounded-md border border-slate-700">PSBDx</span>
+                </p>
+                <p class="text-xs text-slate-600 mt-2">© 2026 Anime Movies BD. All rights reserved.</p>
+            </div>
+            
+        </div>
+    </footer>
+
+    <!-- JavaScript for Multilingual Support -->
+    <script>
+        const translations = {
+            en: {
+                pageTitle: "Ad Loading Solutions",
+                pageSubtitle: "Follow these steps if ads are not loading in our Telegram bot.",
+                stepsTitle: "Basic Troubleshooting",
+                step1Title: "Turn off Ad Blockers",
+                step1Desc: "If you are using any ad-blocker extensions (like uBlock Origin) or ad-blocking browsers (like Brave), please disable them or whitelist our site.",
+                step2Title: "Disable Ad-Blocking DNS",
+                step2Desc: "Go to your phone's settings > Network & Internet > Private DNS. If you are using an ad-blocking DNS (like dns.adguard.com), change it to 'Automatic' or turn it off.",
+                step3Title: "Clear Cache & Retry",
+                step3Desc: "Clear your browser or Telegram app cache, then restart the bot and try generating the link again.",
+                emotionalTitle: "We Need Your Support!",
+                emotionalDesc: "Maintaining a Telegram bot, keeping servers running, and hunting down the best Anime movies for you requires an incredible amount of hard work, time, and money. We provide everything for free, so watching these short ads is the <b class='text-orange-400'>only way</b> you can support our journey. Please help us keep the bot alive so we can continue serving the anime community! 🍜",
+                reportTitle: "Still having issues?",
+                reportDesc: "If you have tried all the steps above and the ad is still not loading, please report it to us directly from the bot.",
+                reportInstruction: 'Click the red <button class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm transition-colors shadow-[0_0_10px_rgba(220,38,38,0.4)] cursor-default"><i class="fa-solid fa-triangle-exclamation"></i></button> button inside the bot to report.'
+            },
+            bn: {
+                pageTitle: "অ্যাড লোডিং সমস্যার সমাধান",
+                pageSubtitle: "আমাদের টেলিগ্রাম বটে অ্যাড লোড না হলে নিচের নিয়মগুলো অনুসরণ করুন।",
+                stepsTitle: "প্রাথমিক সমাধান",
+                step1Title: "অ্যাড ব্লকার বন্ধ করুন",
+                step1Desc: "আপনি যদি কোনো অ্যাড-ব্লকার এক্সটেনশন (যেমন uBlock Origin) বা ব্রাউজার (যেমন Brave) ব্যবহার করে থাকেন, তবে সেটি বন্ধ করুন অথবা আমাদের সাইটটিকে হোয়াইটলিস্ট করুন।",
+                step2Title: "অ্যাড-ব্লকিং DNS অফ করুন",
+                step2Desc: "আপনার ফোনের Settings > Network & Internet > Private DNS অপশনে যান। যদি কোনো অ্যাড-ব্লকিং DNS (যেমন dns.adguard.com) চালু থাকে, তবে সেটি 'Automatic' করে দিন বা অফ করুন।",
+                step3Title: "ক্যাশে ক্লিয়ার করে আবার চেষ্টা করুন",
+                step3Desc: "আপনার ব্রাউজার বা টেলিগ্রাম অ্যাপের ক্যাশে (Cache) ক্লিয়ার করে বটটি রিস্টার্ট দিন এবং পুনরায় লিঙ্ক জেনারেট করার চেষ্টা করুন।",
+                emotionalTitle: "আপনাদের সাপোর্ট আমাদের প্রয়োজন!",
+                emotionalDesc: "একটি টেলিগ্রাম বট মেইনটেইন করা, সার্ভার চালু রাখা এবং আপনাদের জন্য সেরা সব অ্যানিমে মুভি খুঁজে বের করা অনেক পরিশ্রম, সময় ও খরচের ব্যাপার। আমরা আপনাদের সবকিছু ফ্রিতে দিচ্ছি, তাই এই ছোট অ্যাডগুলো দেখাই আমাদের সাপোর্ট করার <b class='text-orange-400'>একমাত্র উপায়</b>। দয়া করে অ্যাড দেখে আমাদের বটটি বাঁচিয়ে রাখতে সাহায্য করুন, যেন আমরা অ্যানিমে কমিউনিটির জন্য কাজ চালিয়ে যেতে পারি! 🍜",
+                reportTitle: "এরপরও কাজ হচ্ছে না?",
+                reportDesc: "উপরের সব নিয়ম মানার পরও যদি অ্যাড লোড না হয়, তবে বটের ভেতর থেকে সরাসরি আমাদের কাছে রিপোর্ট করুন।",
+                reportInstruction: 'রিপোর্ট করতে বটের ভেতরে থাকা লাল <button class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm transition-colors shadow-[0_0_10px_rgba(220,38,38,0.4)] cursor-default"><i class="fa-solid fa-triangle-exclamation"></i></button> বোতামটিতে ক্লিক করুন।'
+            }
+        };
+
+        function switchLang(lang) {
+            const btnEn = document.getElementById('btn-en');
+            const btnBn = document.getElementById('btn-bn');
+            
+            if (lang === 'en') {
+                btnEn.classList.replace('text-slate-400', 'text-white');
+                btnEn.classList.add('bg-orange-500', 'shadow-md');
+                btnEn.classList.remove('hover:text-white');
+                
+                btnBn.classList.replace('text-white', 'text-slate-400');
+                btnBn.classList.remove('bg-orange-500', 'shadow-md');
+                btnBn.classList.add('hover:text-white');
+            } else {
+                btnBn.classList.replace('text-slate-400', 'text-white');
+                btnBn.classList.add('bg-orange-500', 'shadow-md');
+                btnBn.classList.remove('hover:text-white');
+                
+                btnEn.classList.replace('text-white', 'text-slate-400');
+                btnEn.classList.remove('bg-orange-500', 'shadow-md');
+                btnEn.classList.add('hover:text-white');
+            }
+
+            // Update texts
+            document.getElementById('page-title').textContent = translations[lang].pageTitle;
+            document.getElementById('page-subtitle').textContent = translations[lang].pageSubtitle;
+            
+            document.getElementById('steps-title').innerHTML = `<i class="fa-solid fa-list-check text-orange-500"></i> ${translations[lang].stepsTitle}`;
+            
+            document.getElementById('step1-title').textContent = translations[lang].step1Title;
+            document.getElementById('step1-desc').textContent = translations[lang].step1Desc;
+            
+            document.getElementById('step2-title').textContent = translations[lang].step2Title;
+            document.getElementById('step2-desc').textContent = translations[lang].step2Desc;
+            
+            document.getElementById('step3-title').textContent = translations[lang].step3Title;
+            document.getElementById('step3-desc').textContent = translations[lang].step3Desc;
+            
+            document.getElementById('emotional-title').innerHTML = `<i class="fa-solid fa-heart text-red-500 animate-pulse"></i> ${translations[lang].emotionalTitle}`;
+            document.getElementById('emotional-desc').innerHTML = translations[lang].emotionalDesc;
+            
+            document.getElementById('report-title').textContent = translations[lang].reportTitle;
+            document.getElementById('report-desc').textContent = translations[lang].reportDesc;
+            document.getElementById('report-instruction').innerHTML = translations[lang].reportInstruction;
+        }
+    </script>
+</body>
+</html>
+
+
