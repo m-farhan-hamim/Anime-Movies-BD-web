@@ -1,514 +1,298 @@
-import os
-import json
-import asyncio
-from datetime import datetime, timezone, timedelta
-from aiohttp import web
-import aiohttp
-
-# --- ⚙️ CONFIGURATION ---
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
-WEBAPP_URL = os.environ.get("WEBAPP_URL", "https://your-app-name.onrender.com") 
-
-REQUEST_GROUP_ID = "-1003807358631" # Where missing movie requests go
-REPORT_GROUP_ID = "-1003807358631"  # Where user reports go 
-
-CHANNEL_ID = "-1003775739221"       # The channel users MUST join (@animemovie_bd)
-CHANNEL_LINK = "https://t.me/animemovie_bd"
-
-# --- 🍿 DATABASE HELPER ---
-def load_movies():
-    """Reads the movies from the JSON file dynamically"""
-    try:
-        # We use encoding='utf-8' so Bangla/Hindi text loads perfectly!
-        with open('movies.json', 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Error loading movies.json: {e}")
-        return [] # Return empty list if file is missing or broken
-
-# --- 🌐 ASYNC TELEGRAM API HELPER ---
-async def call_telegram(method, payload=None):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/{method}"
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=payload or {}) as response:
-            return await response.json()
-
-async def is_subscribed(user_id):
-    """Checks if a user is in the required channel"""
-    res = await call_telegram('getChatMember', {'chat_id': CHANNEL_ID, 'user_id': user_id})
-    if res.get('ok'):
-        status = res['result']['status']
-        return status in ['member', 'administrator', 'creator']
-    return False
-
-# --- 🖥️ THE FRONTEND HTML (MINI APP) ---
-HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Anime Movies BD</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Channel Requirement | Anime Movies BD</title>
+    
+    <link rel="icon" href="https://animemovies-bd.psbdx.rf.gd/resources/Untitled%20design_20260318_233915_0000.png" type="image/png">
+    <link rel="shortcut icon" href="https://animemovies-bd.psbdx.rf.gd/resources/Untitled%20design_20260318_233915_0000.png" type="image/png">
+    <link rel="apple-touch-icon" href="https://animemovies-bd.psbdx.rf.gd/resources/Untitled%20design_20260318_233915_0000.png">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src='//libtl.com/sdk.js' data-zone='10746210' data-sdk='show_10746210'></script>
     <style>
-        body { background-color: #0f172a; color: white; font-family: sans-serif; }
-        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid #334155; }
-        /* Custom scrollbar for web app */
-        ::-webkit-scrollbar { width: 6px; }
+        /* Custom Animations & Styling */
+        body { 
+            background-color: #020617; /* Slate 950 */
+            background-image: radial-gradient(circle at top right, rgba(249, 115, 22, 0.15), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.15), transparent 40%); /* Sky Blue tint for Telegram */
+            color: #cbd5e1; 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            overflow-x: hidden;
+        }
+        
+        .glass-nav {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .glass-card { 
+            background: rgba(30, 41, 59, 0.4); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(14, 165, 233, 0.3); /* Sky blue hover */
+            box-shadow: 0 10px 40px rgba(14, 165, 233, 0.15);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #0ea5e9; }
     </style>
 </head>
-<body class="p-4 relative min-h-screen">
+<body class="antialiased min-h-screen flex flex-col selection:bg-sky-500 selection:text-white pt-20">
 
-    <!-- ⏳ Loading Screen -->
-    <div id="loadingScreen" class="fixed inset-0 bg-slate-900 z-[60] flex flex-col items-center justify-center">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-orange-500 mb-4"></div>
-        <p class="text-orange-500 font-bold animate-pulse">Verifying Access...</p>
-    </div>
-
-    <!-- 🛑 Access Denied Screen (Gaara's Absolute Defense!) -->
-    <div id="accessDeniedScreen" class="hidden fixed inset-0 bg-slate-900 z-40 flex flex-col items-center justify-center p-6 text-center">
-        <div class="text-6xl mb-4">🛑</div>
-        <h1 class="text-3xl font-bold text-red-500 mb-2">Access Denied</h1>
-        <p class="text-slate-300 mb-8 max-w-xs text-sm">You must join our official Telegram channel to use this app and watch movies!</p>
-        
-        <a href="https://t.me/animemovie_bd" target="_blank" class="w-full max-w-sm bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl mb-3 shadow-lg transition">
-            📢 Join Channel Now
-        </a>
-        
-        <!-- Quick refresh button so they don't have to close the app after joining -->
-        <button onclick="verifyUserAccess()" class="w-full max-w-sm bg-green-600 hover:bg-green-500 text-white font-bold py-3.5 rounded-xl mb-6 shadow-lg transition">
-            🔄 I Have Joined (Refresh)
-        </button>
-
-        <a href="https://animemovies-bd.psbdx.rf.gd/documentations/error-youre-not-joined/" target="_blank" class="w-full max-w-sm bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3.5 rounded-xl border border-slate-700 shadow-lg transition">
-            📖 Why am I seeing this?
-        </a>
-    </div>
-
-    <!-- 🍥 Main App Content (Hidden until verified) -->
-    <div id="mainAppContent" class="hidden max-w-md mx-auto pb-20">
-        <h1 class="text-2xl font-bold text-center text-orange-500 mb-6 mt-2">🍥 Anime Movies BD</h1>
-        
-        <!-- Search Bar -->
-        <div class="mb-6">
-            <input type="text" id="searchInput" onkeyup="handleSearch()" placeholder="Search anime or dubb language..." 
-                   class="w-full p-3 rounded-lg bg-slate-800 text-white border border-slate-600 focus:outline-none focus:border-orange-500 shadow-inner">
-        </div>
-
-        <!-- Dynamic Movies List -->
-        <div id="moviesContainer" class="grid grid-cols-2 gap-4"></div>
-
-        <!-- Inform Team Area -->
-        <div id="noResults" class="hidden text-center mt-10 p-4 glass-panel rounded-xl">
-            <p class="text-slate-300 mb-4 text-sm">Can't find your favorite anime?</p>
-            <button id="informBtn" onclick="informTeamAd()" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 px-6 rounded-lg transition shadow-lg">
-                📢 Watch Ad to Request Movie
-            </button>
-            <p id="informSuccess" class="hidden text-green-400 mt-3 font-bold text-sm">✅ Request sent to our group! We'll upload it soon.</p>
-        </div>
-    </div>
-
-    <!-- ⚠️ Floating Report Button (Z-index 50 so it sits ABOVE the access denied screen) -->
-    <button onclick="openReport()" class="fixed bottom-6 right-6 bg-red-600 hover:bg-red-500 text-white p-4 rounded-full shadow-lg shadow-red-500/40 z-50 transition transform hover:scale-110 hidden" id="reportBtn">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-    </button>
-
-    <!-- Report Modal -->
-    <div id="reportModal" class="fixed inset-0 bg-slate-900/95 hidden flex items-center justify-center z-[70] p-4 transition-opacity">
-        <div class="glass-panel p-6 rounded-2xl w-full max-w-sm shadow-2xl border border-slate-700">
-            
-            <!-- Step 1: Documentation Suggestion -->
-            <div id="reportStep1" class="text-center">
-                <h2 class="text-xl font-bold mb-3 text-white">💡 Need Help?</h2>
-                <p class="text-slate-300 text-sm mb-5">Please check this page first, you might find a solution to your issue!</p>
-                <a href="https://animemovies-bd.psbdx.rf.gd/documentations/" target="_blank" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl mb-4 block text-center shadow-lg transition">
-                    📖 Read Documentation
-                </a>
-                <button onclick="showReportForm()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-3 rounded-xl mb-3 transition text-sm">
-                    Can't find solution? Proceed
-                </button>
-                <button onclick="closeReport()" class="w-full text-slate-400 hover:text-white py-2 text-sm">Cancel</button>
-            </div>
-
-            <!-- Step 2: Actual Report Form -->
-            <div id="reportStep2" class="hidden">
-                <h2 class="text-xl font-bold mb-4 text-white text-center">⚠️ Report an Issue</h2>
-                
-                <label class="block text-slate-400 text-xs mb-1">Your Name (Auto-filled)</label>
-                <input type="text" id="reportName" readonly class="w-full p-3 rounded-lg bg-slate-800/50 text-slate-500 border border-slate-700 mb-4 cursor-not-allowed outline-none">
-                
-                <label class="block text-slate-400 text-xs mb-1">Describe the Issue</label>
-                <textarea id="reportIssue" rows="3" placeholder="Broken link, wrong dub, etc..." class="w-full p-3 rounded-lg bg-slate-800 text-white border border-slate-600 focus:outline-none focus:border-red-500 mb-4"></textarea>
-
-                <button onclick="submitReport()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl mb-3 transition">Submit Report</button>
-                <button onclick="closeReport()" class="w-full text-slate-400 hover:text-white py-2 text-sm">Cancel</button>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- Ad Error Modal -->
-    <div id="adErrorModal" class="fixed inset-0 bg-slate-900/95 hidden flex items-center justify-center z-[70] p-4 transition-opacity">
-        <div class="glass-panel p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl border border-red-700/50">
-            <h2 class="text-xl font-bold mb-3 text-red-500">🚫 Ad Failed to Load</h2>
-            <p class="text-slate-300 text-sm mb-6">It seems the ad couldn't load. This is usually caused by an Ad-blocker or Secure DNS.</p>
-            <a href="https://animemovies-bd.psbdx.rf.gd/documentations/ad-blocker/" target="_blank" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3.5 rounded-xl mb-3 block text-center shadow-lg transition">
-                🛠️ How to Fix Ad-Blocker
+    <nav class="glass-nav fixed top-0 left-0 right-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="https://animemovies-bd.psbdx.rf.gd/" class="flex items-center gap-3 group transition-transform duration-300 hover:scale-105 focus:outline-none">
+                <img src="https://animemovies-bd.psbdx.rf.gd/resources/Untitled%20design_20260318_233915_0000.png" 
+                     alt="Anime Movies BD Logo" 
+                     class="w-10 h-10 object-cover rounded-full border border-slate-700 group-hover:border-sky-500 transition-colors shadow-[0_0_10px_rgba(14,165,233,0.2)]">
+                <span class="font-bold text-lg text-white tracking-wide group-hover:text-sky-400 transition-colors hidden sm:block">Anime Movies BD</span>
             </a>
-            <button onclick="closeAdError()" class="text-slate-400 hover:text-white mt-2 text-sm font-medium">Close</button>
-        </div>
-    </div>
+            
+            <div class="flex items-center gap-3 sm:gap-4">
+                <div class="flex items-center bg-slate-800/60 border border-slate-700 rounded-lg p-1">
+                    <button onclick="switchLang('en')" id="btn-en" class="px-3 py-1 rounded-md text-xs sm:text-sm font-semibold transition-colors bg-sky-500 text-white shadow-md">EN</button>
+                    <button onclick="switchLang('bn')" id="btn-bn" class="px-3 py-1 rounded-md text-xs sm:text-sm font-semibold transition-colors text-slate-400 hover:text-white">BN</button>
+                </div>
 
-    <!-- Movie Action Modal -->
-    <div id="movieModal" class="fixed inset-0 bg-slate-900/95 hidden flex items-center justify-center z-[70] p-4 transition-opacity">
-        <div class="glass-panel p-6 rounded-2xl w-full max-w-sm text-center shadow-2xl border border-slate-700">
-            <img id="modalImg" src="" class="w-28 h-28 mx-auto rounded-xl mb-4 object-cover border-2 border-slate-700">
-            <h2 id="modalTitle" class="text-xl font-bold mb-1 text-white"></h2>
-            <p id="modalDubb" class="text-orange-400 text-sm font-semibold mb-6 uppercase"></p>
-
-            <button id="watchAdBtn" onclick="watchAd()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl mb-3 shadow-lg transition">📺 Watch Ad to Unlock</button>
-            <a id="teraboxLink" href="#" target="_blank" class="hidden w-full bg-green-500 hover:bg-green-400 text-white font-bold py-3.5 rounded-xl mb-3 block text-center shadow-lg transition">🍿 Open Terabox Link</a>
-            <button onclick="closeModal()" class="text-slate-400 hover:text-white mt-4 text-sm font-medium">CANCEL</button>
+                <a href="https://t.me/animemovie_bd_bot" target="_blank" class="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-300 hover:text-white bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 px-3 sm:px-4 py-1.5 rounded-full transition-all">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.06-.2-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z"/></svg>
+                    <span class="hidden sm:block">Launch Bot</span>
+                </a>
+            </div>
         </div>
-    </div>
+    </nav>
+
+    <main class="flex-grow max-w-3xl mx-auto w-full px-4 py-8 sm:py-12 flex flex-col gap-6 fade-in z-10">
+        
+        <div class="text-center mb-4">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-500/10 text-sky-500 mb-4 border border-sky-500/20 shadow-[0_0_15px_rgba(14,165,233,0.15)]">
+                <i class="fa-brands fa-telegram text-3xl"></i>
+            </div>
+            <h2 id="page-title" class="text-3xl md:text-4xl font-bold text-white mb-3">Channel Join Requirement</h2>
+            <p id="page-subtitle" class="text-slate-400 text-lg">Learn why you need to join our Telegram channel to use the bot.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-6 sm:p-8 border-sky-500/20 bg-sky-900/10 relative overflow-hidden">
+            <div class="absolute -right-6 -top-6 opacity-[0.05] pointer-events-none">
+                <i class="fa-solid fa-lock text-[150px] text-sky-500"></i>
+            </div>
+            <h3 id="error-title" class="text-xl font-bold text-white mb-3 flex items-center gap-2 relative z-10">
+                <i class="fa-solid fa-circle-exclamation text-sky-500"></i> Why am I seeing a "Join Channel" error?
+            </h3>
+            <p id="error-desc" class="text-slate-300 leading-relaxed text-sm sm:text-base relative z-10">
+                Our bot uses a <b>"Force Join"</b> system. This means you must be a member of our official Telegram channel to search, generate links, and download movies. If you leave the channel, the bot will automatically stop working for you.
+            </p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-6 sm:p-8">
+            <h3 id="steps-title" class="text-xl font-bold text-white mb-6 flex items-center gap-2 border-b border-slate-700/50 pb-4">
+                <i class="fa-solid fa-check-double text-sky-500"></i> How to fix this?
+            </h3>
+            
+            <ul class="space-y-6">
+                <li class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-sky-500 font-bold shadow-inner">1</div>
+                    <div>
+                        <h4 id="step1-title" class="font-bold text-lg text-slate-200">Open the Channel</h4>
+                        <p id="step1-desc" class="text-slate-400 text-sm mt-1.5 leading-relaxed">Click the channel link provided by the bot, or directly visit our channel at <b>@animemovie_bd</b>.</p>
+                    </div>
+                </li>
+                <li class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-sky-500 font-bold shadow-inner">2</div>
+                    <div>
+                        <h4 id="step2-title" class="font-bold text-lg text-slate-200">Click "Join"</h4>
+                        <p id="step2-desc" class="text-slate-400 text-sm mt-1.5 leading-relaxed">Make sure you press the <b>"Join"</b> button at the bottom of the Telegram channel. Just viewing the channel is not enough.</p>
+                    </div>
+                </li>
+                <li class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-sky-500 font-bold shadow-inner">3</div>
+                    <div>
+                        <h4 id="step3-title" class="font-bold text-lg text-slate-200">Verify in Bot</h4>
+                        <p id="step3-desc" class="text-slate-400 text-sm mt-1.5 leading-relaxed">Go back to the bot and click the <b>"Joined"</b> button, or simply send the <b>/start</b> command again. The bot will now unlock all features!</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="glass-card rounded-2xl p-6 sm:p-8 relative overflow-hidden border-orange-500/20 bg-gradient-to-br from-slate-800/50 to-orange-900/10">
+            <div class="absolute -right-10 -top-10 opacity-[0.03] pointer-events-none">
+                <i class="fa-solid fa-fire text-[200px] text-orange-500"></i>
+            </div>
+            <h3 id="emotional-title" class="text-xl font-bold mb-4 flex items-center gap-2 text-white relative z-10">
+                <i class="fa-solid fa-users text-orange-500"></i> Why do we Force Join?
+            </h3>
+            <p id="emotional-desc" class="text-slate-300 leading-relaxed text-sm sm:text-base relative z-10">
+                Building the best anime community in Bangladesh is our ultimate goal! By joining the channel, you stay updated with the latest dual-audio movie releases, server updates, and announcements. As a Class 10 student managing all of this alone, seeing our channel grow is my biggest motivation to keep working hard. Join our Shinobi Alliance and let's grow together! 🥷✨
+            </p>
+        </div>
+
+        <div class="glass-card bg-sky-900/20 border-sky-500/30 rounded-2xl p-6 sm:p-10 text-center mt-2 shadow-[0_0_30px_rgba(14,165,233,0.1)]">
+            <h3 id="action-title" class="text-2xl font-bold text-white mb-3">Ready to Watch Anime?</h3>
+            <p id="action-desc" class="text-slate-400 text-sm mb-6">Join our official channel right now to unlock the bot.</p>
+            
+            <a href="https://t.me/animemovie_bd" target="_blank" class="inline-flex items-center gap-3 bg-sky-500 hover:bg-sky-400 text-white font-bold text-lg py-4 px-8 rounded-xl transition-all shadow-[0_0_20px_rgba(14,165,233,0.4)] hover:shadow-[0_0_30px_rgba(14,165,233,0.6)] hover:-translate-y-1">
+                <i class="fa-brands fa-telegram text-2xl"></i>
+                <span id="action-btn">Join @animemovie_bd</span>
+            </a>
+        </div>
+
+    </main>
+
+    <footer class="mt-auto py-10 text-center border-t border-slate-800 bg-slate-900/50 backdrop-blur-sm relative z-10">
+        <div class="max-w-4xl mx-auto px-4">
+            
+            <div class="flex flex-wrap justify-center gap-x-8 gap-y-4 mb-8">
+                <a href="https://animemovies-bd.psbdx.rf.gd/" class="flex items-center gap-2 text-slate-400 hover:text-sky-500 transition-colors font-semibold tracking-wide">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    Home
+                </a>
+                <a href="https://animemovies-bd.psbdx.rf.gd/privacy-policy" class="flex items-center gap-2 text-slate-400 hover:text-sky-500 transition-colors font-semibold tracking-wide">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    Privacy Policy
+                </a>
+                <a href="https://t.me/animemovie_bd_bot" target="_blank" class="flex items-center gap-2 text-slate-400 hover:text-sky-500 transition-colors font-semibold tracking-wide">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    Telegram Bot
+                </a>
+            </div>
+
+            <div class="flex flex-col items-center justify-center gap-2">
+                <p class="text-slate-400 font-medium flex items-center gap-2">
+                    Built with 
+                    <span class="text-red-500 animate-pulse">❤️</span> 
+                    by 
+                    <span class="font-bold text-white tracking-wide bg-slate-800 px-3 py-1 rounded-md border border-slate-700">PSBDx</span>
+                </p>
+                <p class="text-xs text-slate-600 mt-2">© 2026 Anime Movies BD. All rights reserved.</p>
+            </div>
+            
+        </div>
+    </footer>
 
     <script>
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
-
-        const allMovies = __MOVIES_JSON__;
-        let currentSearchQuery = "";
-        let currentSelectedMovie = null;
-        let adsWatchedCount = 0;
-
-        // Get Telegram User Data
-        const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
-        const tgUserId = tgUser?.id;
-        const tgFullName = tgUser ? (tgUser.first_name + " " + (tgUser.last_name || "")).trim() : "Unknown Ninja";
-        const tgUsername = tgUser?.username ? "@" + tgUser.username : "No Username";
-
-        // --- 🛡️ VERIFY ACCESS LOGIC ---
-        async function verifyUserAccess() {
-            // Show Loader, Hide everything else
-            document.getElementById('loadingScreen').classList.remove('hidden');
-            document.getElementById('accessDeniedScreen').classList.add('hidden');
-            document.getElementById('mainAppContent').classList.add('hidden');
-            document.getElementById('reportBtn').classList.add('hidden');
-
-            if (!tgUserId) {
-                // Not running in Telegram, or failed to get ID
-                showAccessDenied();
-                return;
-            }
-
-            try {
-                const response = await fetch('/check_join', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: tgUserId })
-                });
+        const translations = {
+            en: {
+                pageTitle: "Channel Join Requirement",
+                pageSubtitle: "Learn why you need to join our Telegram channel to use the bot.",
                 
-                const data = await response.json();
+                errorTitle: "Why am I seeing a 'Join Channel' error?",
+                errorDesc: "Our bot uses a <b>'Force Join'</b> system. This means you must be a member of our official Telegram channel to search, generate links, and download movies. If you leave the channel, the bot will automatically stop working for you.",
+
+                stepsTitle: "How to fix this?",
                 
-                if (data.joined) {
-                    showMainApp();
-                } else {
-                    showAccessDenied();
-                }
-            } catch (err) {
-                console.error("Verification error:", err);
-                showAccessDenied(); // Default to secure if request fails
+                step1Title: "Open the Channel",
+                step1Desc: "Click the channel link provided by the bot, or directly visit our channel at <b>@animemovie_bd</b>.",
+                
+                step2Title: "Click 'Join'",
+                step2Desc: "Make sure you press the <b>'Join'</b> button at the bottom of the Telegram channel. Just viewing the channel is not enough.",
+                
+                step3Title: "Verify in Bot",
+                step3Desc: "Go back to the bot and click the <b>'Joined'</b> button, or simply send the <b>/start</b> command again. The bot will now unlock all features!",
+                
+                emotionalTitle: "Why do we Force Join?",
+                emotionalDesc: "Building the best anime community in Bangladesh is our ultimate goal! By joining the channel, you stay updated with the latest dual-audio movie releases, server updates, and announcements. As a Class 10 student managing all of this alone, seeing our channel grow is my biggest motivation to keep working hard. Join our Shinobi Alliance and let's grow together! 🥷✨",
+                
+                actionTitle: "Ready to Watch Anime?",
+                actionDesc: "Join our official channel right now to unlock the bot.",
+                actionBtn: "Join @animemovie_bd"
+            },
+            bn: {
+                pageTitle: "চ্যানেলে জয়েন করা বাধ্যতামূলক",
+                pageSubtitle: "বটটি ব্যবহার করতে কেন আমাদের টেলিগ্রাম চ্যানেলে জয়েন করতে হবে, তা জেনে নিন।",
+                
+                errorTitle: "কেন 'Join Channel' এরর দেখাচ্ছে?",
+                errorDesc: "আমাদের বটটিতে <b>'Force Join'</b> সিস্টেম চালু আছে। এর মানে হলো, মুভি সার্চ করতে বা ডাউনলোড লিংক পেতে হলে আপনাকে অবশ্যই আমাদের অফিসিয়াল টেলিগ্রাম চ্যানেলের মেম্বার হতে হবে। আপনি চ্যানেল থেকে লিভ নিলে বটটি সাথে সাথে কাজ করা বন্ধ করে দেবে।",
+
+                stepsTitle: "কীভাবে এর সমাধান করবেন?",
+                
+                step1Title: "চ্যানেল ওপেন করুন",
+                step1Desc: "বটের দেওয়া চ্যানেল লিংকে ক্লিক করুন, অথবা টেলিগ্রামে সরাসরি <b>@animemovie_bd</b> সার্চ করে চ্যানেলে যান।",
+                
+                step2Title: "জয়েন (Join) করুন",
+                step2Desc: "চ্যানেলে যাওয়ার পর নিচে থাকা <b>'Join'</b> বাটনটিতে অবশ্যই ক্লিক করুন। শুধু চ্যানেল ভিজিট করলে কাজ হবে না।",
+                
+                step3Title: "বটে ভেরিফাই করুন",
+                step3Desc: "জয়েন করার পর বটে ফিরে এসে <b>'Joined'</b> বাটনে ক্লিক করুন অথবা আবার <b>/start</b> দিন। বট এখন আপনার জন্য সম্পূর্ণ আনলক হয়ে যাবে!",
+                
+                emotionalTitle: "আমরা কেন ফোর্স জয়েন (Force Join) করাই?",
+                emotionalDesc: "বাংলাদেশে একটি দারুণ অ্যানিমে কমিউনিটি গড়ে তোলাই আমাদের স্বপ্ন! চ্যানেলে জয়েন থাকলে আপনি সব নতুন ডুয়েল-অডিও মুভি এবং আপডেটের খবর সবার আগে পাবেন। দশম শ্রেণির একজন ছাত্র হিসেবে একা এত কিছু ম্যানেজ করার ক্ষেত্রে, চ্যানেলের মেম্বার বাড়তে দেখাই আমার সবচেয়ে বড় অনুপ্রেরণা। আমাদের শিনোবি অ্যালায়েন্সে (Shinobi Alliance) যোগ দিন এবং আমাদের পাশে থাকুন! 🥷✨",
+                
+                actionTitle: "মুভি দেখতে প্রস্তুত?",
+                actionDesc: "বটটি আনলক করতে এখনই আমাদের অফিসিয়াল চ্যানেলে জয়েন করুন।",
+                actionBtn: "@animemovie_bd এ জয়েন করুন"
             }
-        }
+        };
 
-        function showMainApp() {
-            document.getElementById('loadingScreen').classList.add('hidden');
-            document.getElementById('mainAppContent').classList.remove('hidden');
-            document.getElementById('reportBtn').classList.remove('hidden'); // Show report button
-            renderMovies(allMovies);
-        }
-
-        function showAccessDenied() {
-            document.getElementById('loadingScreen').classList.add('hidden');
-            document.getElementById('accessDeniedScreen').classList.remove('hidden');
-            document.getElementById('reportBtn').classList.remove('hidden'); // Keep report button alive!
-        }
-
-        // --- RENDER & SEARCH ---
-        function renderMovies(moviesArray) {
-            const container = document.getElementById('moviesContainer');
-            container.innerHTML = '';
-            moviesArray.forEach(movie => {
-                const card = `<div onclick="openModal('${movie.id}')" class="glass-panel rounded-xl p-3 cursor-pointer hover:border-orange-500 transition shadow-lg relative overflow-hidden group">
-                        <img src="${movie.thumb}" class="w-full aspect-square object-cover rounded-lg mb-3 group-hover:scale-105 transition duration-300">
-                        <div class="absolute top-4 right-4 bg-orange-500 text-xs font-bold px-2 py-1 rounded-md shadow-md">${movie.dubb}</div>
-                        <h3 class="font-bold text-sm text-white truncate">${movie.name}</h3>
-                    </div>`;
-                container.innerHTML += card;
-            });
-        }
-
-        function handleSearch() {
-            currentSearchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
-            const filtered = allMovies.filter(m => m.name.toLowerCase().includes(currentSearchQuery) || m.dubb.toLowerCase().includes(currentSearchQuery));
-            renderMovies(filtered);
+        function switchLang(lang) {
+            const btnEn = document.getElementById('btn-en');
+            const btnBn = document.getElementById('btn-bn');
             
-            if (filtered.length === 0 && currentSearchQuery.length > 0) {
-                document.getElementById('noResults').classList.remove('hidden');
-                document.getElementById('informBtn').classList.remove('hidden');
-                document.getElementById('informSuccess').classList.add('hidden');
+            // Toggle active state styling (Sky Blue Theme)
+            if (lang === 'en') {
+                btnEn.classList.replace('text-slate-400', 'text-white');
+                btnEn.classList.add('bg-sky-500', 'shadow-md');
+                btnEn.classList.remove('hover:text-white');
+                
+                btnBn.classList.replace('text-white', 'text-slate-400');
+                btnBn.classList.remove('bg-sky-500', 'shadow-md');
+                btnBn.classList.add('hover:text-white');
             } else {
-                document.getElementById('noResults').classList.add('hidden');
+                btnBn.classList.replace('text-slate-400', 'text-white');
+                btnBn.classList.add('bg-sky-500', 'shadow-md');
+                btnBn.classList.remove('hover:text-white');
+                
+                btnEn.classList.replace('text-white', 'text-slate-400');
+                btnEn.classList.remove('bg-sky-500', 'shadow-md');
+                btnEn.classList.add('hover:text-white');
             }
-        }
 
-        // --- AD TO REQUEST MOVIE ---
-        function informTeamAd() {
-            if (typeof show_10746210 === 'function') {
-                show_10746210().then(() => {
-                    sendMovieRequest();
-                }).catch(() => {
-                    showAdError();
-                });
-            } else {
-                showAdError();
-            }
-        }
-
-        async function sendMovieRequest() {
-            document.getElementById('informBtn').classList.add('hidden');
-            try {
-                await fetch('/inform', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ movie_name: currentSearchQuery })
-                });
-                document.getElementById('informSuccess').classList.remove('hidden');
-            } catch (err) {
-                document.getElementById('informBtn').classList.remove('hidden');
-                window.Telegram.WebApp.showAlert("Connection error.");
-            }
-        }
-
-        // --- REPORT FEATURE ---
-        function openReport() {
-            document.getElementById('reportName').value = tgFullName;
-            // Reset to Step 1
-            document.getElementById('reportStep1').classList.remove('hidden');
-            document.getElementById('reportStep2').classList.add('hidden');
-            document.getElementById('reportModal').classList.remove('hidden');
-        }
-
-        function showReportForm() {
-            document.getElementById('reportStep1').classList.add('hidden');
-            document.getElementById('reportStep2').classList.remove('hidden');
-        }
-
-        function closeReport() {
-            document.getElementById('reportModal').classList.add('hidden');
-            document.getElementById('reportIssue').value = "";
-        }
-
-        async function submitReport() {
-            const issue = document.getElementById('reportIssue').value.trim();
-            if(!issue) return window.Telegram.WebApp.showAlert("Please describe the issue.");
+            // Update texts
+            document.getElementById('page-title').textContent = translations[lang].pageTitle;
+            document.getElementById('page-subtitle').textContent = translations[lang].pageSubtitle;
             
-            try {
-                await fetch('/report', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: tgFullName, username: tgUsername, issue: issue })
-                });
-                window.Telegram.WebApp.showAlert("✅ Report sent to admin group!");
-                closeReport();
-            } catch (err) {
-                window.Telegram.WebApp.showAlert("Error sending report.");
-            }
+            document.getElementById('error-title').innerHTML = `<i class="fa-solid fa-circle-exclamation text-sky-500"></i> ${translations[lang].errorTitle}`;
+            document.getElementById('error-desc').innerHTML = translations[lang].errorDesc;
+
+            document.getElementById('steps-title').innerHTML = `<i class="fa-solid fa-check-double text-sky-500"></i> ${translations[lang].stepsTitle}`;
+            
+            document.getElementById('step1-title').textContent = translations[lang].step1Title;
+            document.getElementById('step1-desc').innerHTML = translations[lang].step1Desc;
+            
+            document.getElementById('step2-title').textContent = translations[lang].step2Title;
+            document.getElementById('step2-desc').innerHTML = translations[lang].step2Desc;
+            
+            document.getElementById('step3-title').textContent = translations[lang].step3Title;
+            document.getElementById('step3-desc').innerHTML = translations[lang].step3Desc;
+            
+            document.getElementById('emotional-title').innerHTML = `<i class="fa-solid fa-users text-orange-500"></i> ${translations[lang].emotionalTitle}`;
+            document.getElementById('emotional-desc').innerHTML = translations[lang].emotionalDesc;
+            
+            document.getElementById('action-title').textContent = translations[lang].actionTitle;
+            document.getElementById('action-desc').textContent = translations[lang].actionDesc;
+            document.getElementById('action-btn').textContent = translations[lang].actionBtn;
         }
-
-        // --- AD ERROR MODAL ---
-        function showAdError() {
-            document.getElementById('adErrorModal').classList.remove('hidden');
-        }
-
-        function closeAdError() {
-            document.getElementById('adErrorModal').classList.add('hidden');
-        }
-
-        // --- MOVIE MODALS ---
-        function openModal(id) {
-            currentSelectedMovie = allMovies.find(m => m.id === id);
-            adsWatchedCount = 0; 
-            document.getElementById('modalTitle').innerText = currentSelectedMovie.name;
-            document.getElementById('modalDubb').innerText = `${currentSelectedMovie.dubb} Dubb`;
-            document.getElementById('modalImg').src = currentSelectedMovie.thumb;
-            updateModalUI();
-            document.getElementById('movieModal').classList.remove('hidden');
-        }
-
-        function closeModal() { document.getElementById('movieModal').classList.add('hidden'); }
-
-        function updateModalUI() {
-            if (adsWatchedCount >= currentSelectedMovie.required_ads) {
-                document.getElementById('watchAdBtn').classList.add('hidden');
-                document.getElementById('teraboxLink').classList.remove('hidden');
-                document.getElementById('teraboxLink').href = currentSelectedMovie.link;
-            } else {
-                document.getElementById('watchAdBtn').classList.remove('hidden');
-                document.getElementById('teraboxLink').classList.add('hidden');
-                document.getElementById('watchAdBtn').innerText = `📺 Watch Ad (${adsWatchedCount}/${currentSelectedMovie.required_ads}) to Unlock`;
-            }
-        }
-
-        function watchAd() {
-            if (typeof show_10746210 === 'function') {
-                show_10746210().then(() => {
-                    adsWatchedCount++;
-                    updateModalUI();
-                }).catch(() => { 
-                    showAdError(); 
-                });
-            } else {
-                showAdError();
-            }
-        }
-
-        // 🔥 FIRE UP VERIFICATION ON LOAD
-        verifyUserAccess();
-
     </script>
 </body>
 </html>
-"""
 
-# --- 🚀 AIOHTTP WEB ROUTES & HANDLERS ---
-
-async def handle_index(request):
-    movies_data = load_movies()
-    movies_json = json.dumps(movies_data)
-    html = HTML_TEMPLATE.replace("__MOVIES_JSON__", movies_json)
-    return web.Response(text=html, content_type='text/html')
-
-# 🆕 New Endpoint to secretly verify users!
-async def handle_check_join(request):
-    try:
-        data = await request.json()
-        user_id = data.get("user_id")
-        
-        if not user_id:
-            return web.json_response({"joined": False})
-            
-        # Check against Telegram API
-        is_joined = await is_subscribed(user_id)
-        return web.json_response({"joined": is_joined})
-    except Exception as e:
-        print(f"Error checking join status: {e}")
-        return web.json_response({"joined": False})
-
-async def handle_inform(request):
-    try:
-        data = await request.json()
-        message_text = f"📢 **New Anime Request!**\n\nSomeone couldn't find: `{data.get('movie_name', 'Unknown')}`\n\nAdmins, please upload it soon! 🚀"
-        await call_telegram('sendMessage', {'chat_id': REQUEST_GROUP_ID, 'text': message_text, 'parse_mode': 'Markdown'})
-        return web.json_response({"status": "success"})
-    except:
-        return web.json_response({"status": "error"}, status=500)
-
-async def handle_report(request):
-    try:
-        data = await request.json()
-        # Get BD Time (+6)
-        bd_tz = timezone(timedelta(hours=6))
-        current_time = datetime.now(bd_tz).strftime("%H:%M | %d/%m/%Y")
-        
-        report_text = (
-            f"🚨 **New User Report**\n\n"
-            f"👤 **User:** {data.get('name')} ({data.get('username')})\n"
-            f"⏰ **Time:** `{current_time}`\n\n"
-            f"📝 **Reason/Issue:**\n`{data.get('issue')}`"
-        )
-        
-        await call_telegram('sendMessage', {'chat_id': REPORT_GROUP_ID, 'text': report_text, 'parse_mode': 'Markdown'})
-        return web.json_response({"status": "success"})
-    except:
-        return web.json_response({"status": "error"}, status=500)
-
-async def send_main_menu(chat_id):
-    reply_markup = {"inline_keyboard": [[{"text": "🎬 Open Anime Movies BD", "web_app": {"url": WEBAPP_URL}}]]}
-    await call_telegram('sendMessage', {
-        'chat_id': chat_id,
-        'text': "Welcome to **Anime Movies BD**! 🍿\n\nClick the button below to search and watch your favorite anime.",
-        'parse_mode': 'Markdown',
-        'reply_markup': reply_markup
-    })
-
-async def handle_webhook(request):
-    try:
-        update = await request.json()
-        
-        if "callback_query" in update:
-            call_id = update["callback_query"]["id"]
-            user_id = update["callback_query"]["from"]["id"]
-            chat_id = update["callback_query"]["message"]["chat"]["id"]
-            data = update["callback_query"]["data"]
-            
-            if data == "verify_join":
-                if await is_subscribed(user_id):
-                    await call_telegram('answerCallbackQuery', {'callback_query_id': call_id, 'text': "✅ Verified! Thanks for joining."})
-                    await call_telegram('deleteMessage', {'chat_id': chat_id, 'message_id': update["callback_query"]["message"]["message_id"]})
-                    await send_main_menu(chat_id)
-                else:
-                    await call_telegram('answerCallbackQuery', {'callback_query_id': call_id, 'text': "❌ You haven't joined the channel yet!", 'show_alert': True})
-            return web.Response(text="OK")
-
-        if "message" in update and "text" in update["message"]:
-            text = update["message"]["text"]
-            chat_id = update["message"]["chat"]["id"]
-            user_id = update["message"]["from"]["id"]
-            
-            if text.startswith("/start"):
-                if await is_subscribed(user_id):
-                    await send_main_menu(chat_id)
-                else:
-                    reply_markup = {
-                        "inline_keyboard": [
-                            [{"text": "📢 Join Channel", "url": CHANNEL_LINK}],
-                            [{"text": "✅ Verify", "callback_data": "verify_join"}]
-                        ]
-                    }
-                    await call_telegram('sendMessage', {
-                        'chat_id': chat_id,
-                        'text': "👋 **Hold up!**\n\nYou must join our official channel to use this bot and watch movies.",
-                        'parse_mode': 'Markdown',
-                        'reply_markup': reply_markup
-                    })
-                    
-        return web.Response(text="OK")
-    except Exception as e:
-        print(f"Webhook error: {e}")
-        return web.Response(text="Error", status=500)
-
-async def handle_set_webhook(request):
-    result = await call_telegram('setWebhook', {'url': f"{WEBAPP_URL}/webhook"})
-    if result.get('ok'):
-        return web.Response(text="✅ Webhook successfully set! Bot is alive.")
-    return web.Response(text=f"❌ Failed to set webhook: {result}")
-
-def init_app():
-    app = web.Application()
-    app.router.add_get('/', handle_index)
-    app.router.add_post('/check_join', handle_check_join) # 🆕 Added Endpoint
-    app.router.add_post('/inform', handle_inform)
-    app.router.add_post('/report', handle_report)
-    app.router.add_post('/webhook', handle_webhook)
-    app.router.add_get('/set_webhook', handle_set_webhook)
-    return app
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8080))
-    app = init_app()
-    web.run_app(app, host='0.0.0.0', port=port)
