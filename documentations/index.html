@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Anime Movies BD - Docs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            background-color: #0f172a; /* matches your bot's theme */
+            color: white; 
+            font-family: sans-serif; 
+        }
+        .glass-panel { 
+            background: rgba(30, 41, 59, 0.7); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid #334155; 
+        }
+    </style>
+</head>
+<body class="p-4 relative min-h-screen flex items-center justify-center">
+
+    <div class="max-w-md w-full mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-orange-500 mb-2">🍥 Help Center</h1>
+            <p class="text-slate-400 text-sm">Find solutions to common issues below</p>
+        </div>
+
+        <!-- Documentation Links Container -->
+        <div id="menuContainer" class="space-y-4">
+            <!-- Links will be injected here by JavaScript -->
+        </div>
+
+        <!-- Footer Note -->
+        <div class="mt-8 text-center">
+            <p class="text-slate-500 text-xs">Anime Movies BD © 2026</p>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 🛠️ EDIT THIS LIST TO ADD NEW LINKS
+        // ==========================================
+        const documentationLinks = [
+            {
+                title: "Ad's Not Loading Error",
+                description: "Fix Ad-blocker or Secure DNS blocking the ads.",
+                icon: "🚫",
+                url: "https://animemovies-bd.psbdx.rf.gd/documentations/ad-blocker/",
+                color: "text-red-400"
+            },
+            {
+                title: "Terabox Errors",
+                description: "Solutions for video playback or download issues.",
+                icon: "🍿",
+                url: "https://animemovies-bd.psbdx.rf.gd/documentations/terabox-error/",
+                color: "text-blue-400"
+            }
+            // 👉 TO ADD A NEW LINK, COPY THE FORMAT ABOVE AND PASTE IT HERE!
+            // Example:
+            // ,{
+            //     title: "How to Download",
+            //     description: "Step by step guide to download movies.",
+            //     icon: "⬇️",
+            //     url: "https://your-link.com",
+            //     color: "text-green-400"
+            // }
+        ];
+
+        // ==========================================
+        // ⚙️ RENDER SCRIPT (DO NOT TOUCH)
+        // ==========================================
+        function renderMenu() {
+            const container = document.getElementById('menuContainer');
+            container.innerHTML = '';
+
+            documentationLinks.forEach(item => {
+                const cardHTML = `
+                    <a href="${item.url}" target="_blank" class="block glass-panel rounded-2xl p-5 transition transform hover:-translate-y-1 hover:border-orange-500 shadow-lg group">
+                        <div class="flex items-center space-x-4">
+                            <div class="text-3xl ${item.color} bg-slate-800/50 p-3 rounded-xl border border-slate-700 group-hover:bg-slate-700/50 transition">
+                                ${item.icon}
+                            </div>
+                            <div class="flex-1">
+                                <h2 class="text-lg font-bold text-white mb-1 group-hover:text-orange-400 transition">${item.title}</h2>
+                                <p class="text-slate-400 text-sm leading-tight">${item.description}</p>
+                            </div>
+                            <div class="text-slate-500 group-hover:text-orange-500 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </div>
+                        </div>
+                    </a>
+                `;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        // Initialize the menu when the page loads
+        renderMenu();
+    </script>
+</body>
+</html>
+
